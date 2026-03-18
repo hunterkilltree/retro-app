@@ -1,6 +1,6 @@
 ---
 description: Java Spring Boot backend conventions
-globs: backend/**/*.java
+globs: retro-server/**/*.java
 alwaysApply: false
 ---
 

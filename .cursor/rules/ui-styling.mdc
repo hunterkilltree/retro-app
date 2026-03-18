@@ -1,6 +1,6 @@
 ---
 description: UI theme and styling conventions
-globs: frontend/**/*.{css,scss,tsx}
+globs: retro-fe/**/*.{css,scss,tsx}
 alwaysApply: false
 ---
 

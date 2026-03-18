@@ -1,6 +1,6 @@
 ---
 description: PostgreSQL 16 database conventions and JPA entity mapping
-globs: "backend/**/*.{java,sql}"
+globs: "retro-server/**/*.{java,sql}"
 alwaysApply: false
 ---
 
@@ -8,7 +8,9 @@ alwaysApply: false
 
 ## Connection
 
-- TLS required: `sslmode=require` in JDBC URL.
+- **Local dev**: PostgreSQL 16 runs in Docker (`compose.yml` at repo root). Volume stored in `./docker-data/postgres/`.
+- JDBC URL for dev: `jdbc:postgresql://localhost:5432/retro_db` (no TLS needed locally).
+- **Production**: use `sslmode=require` in JDBC URL for TLS.
 - Connection pool via HikariCP (Spring Boot default).
 - Config in `application.yml` — never commit credentials; use env vars or Spring profiles.
 

@@ -1,6 +1,6 @@
 ---
 description: Next.js TypeScript frontend conventions
-globs: frontend/**/*.{ts,tsx}
+globs: retro-fe/**/*.{ts,tsx}
 alwaysApply: false
 ---
 

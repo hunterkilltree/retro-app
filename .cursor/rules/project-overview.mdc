@@ -9,11 +9,11 @@ Real-time retrospective board. No auth. Users generate a room, share a link, and
 
 ## Architecture
 
-- **Frontend**: Next.js 14+ (App Router) with TypeScript — `/frontend`
-- **Backend**: Java 21 + Spring Boot 3 — `/backend`
-- **Database**: PostgreSQL 16 with TLS — Spring Data JPA / Hibernate
+- **Frontend**: Next.js 15 LTS (App Router) with TypeScript — `/retro-fe`
+- **Backend**: Java 21 + Spring Boot 4.0.3 — `/retro-server`
+- **Database**: PostgreSQL 16 in Docker (local dev), TLS in production — Spring Data JPA / Hibernate
 - **Real-time**: WebSocket (STOMP over SockJS on Spring, SockJS client on Next.js)
-- **Monorepo**: `frontend/` and `backend/` directories at repo root
+- **Monorepo**: `retro-fe/` and `retro-server/` directories at repo root
 
 ## Database Schema (PostgreSQL 16)
 

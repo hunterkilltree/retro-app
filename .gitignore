@@ -1,0 +1,5 @@
+# Docker PostgreSQL volume data
+docker-data/
+
+# Environment variables (credentials)
+.env
