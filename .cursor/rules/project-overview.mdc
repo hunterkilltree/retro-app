@@ -1,0 +1,46 @@
+---
+description: Retro App project overview — architecture, domain model, and conventions
+alwaysApply: true
+---
+
+# Retro App — Project Overview
+
+Real-time retrospective board. No auth. Users generate a room, share a link, and run a structured retro session.
+
+## Architecture
+
+- **Frontend**: Next.js 14+ (App Router) with TypeScript — `/frontend`
+- **Backend**: Java 21 + Spring Boot 3 — `/backend`
+- **Database**: PostgreSQL 16 with TLS — Spring Data JPA / Hibernate
+- **Real-time**: WebSocket (STOMP over SockJS on Spring, SockJS client on Next.js)
+- **Monorepo**: `frontend/` and `backend/` directories at repo root
+
+## Database Schema (PostgreSQL 16)
+
+| Table            | PK (UUID) | Key Columns                                                   |
+|------------------|-----------|---------------------------------------------------------------|
+| `rooms`          | `id`      | `room_code` (UK), `state`, `timer_seconds`, `timer_started_at`, `created_at` |
+| `participants`   | `id`      | `room_id` (FK), `username`, `color`, `role`, `session_token`, `joined_at` |
+| `board_columns`  | `id`      | `room_id` (FK), `title`, `color`, `position`, `created_at`   |
+| `notes`          | `id`      | `room_id` (FK), `column_id` (FK), `participant_id` (FK), `group_id` (FK nullable), `content`, `position` |
+| `note_groups`    | `id`      | `room_id` (FK), `column_id` (FK), `name`, `position`         |
+| `action_items`   | `id`      | `room_id` (FK), `content`, `position`                        |
+
+All PKs are `UUID`. All entities track `created_at`; `notes` also has `updated_at`.
+
+## Board States (linear, forward-only)
+
+`SETUP → START → REVIEW → DONE`
+
+- **SETUP**: Admin configures columns + timer; lobby shows connected users.
+- **START**: Countdown runs. Everyone writes notes. Guests see only their own; admin sees all.
+- **REVIEW**: All notes revealed. Admin groups notes via drag-and-drop.
+- **DONE**: Summary view. Admin adds action items and can export PDF.
+
+## Key Conventions
+
+- Room IDs are short uppercase alphanumeric codes (e.g. `XK9-47B`).
+- First user in a room becomes admin automatically — no login system.
+- Guests must pick a username and color before entering the board.
+- All mutations flow through WebSocket messages; REST is used only for room creation and PDF export.
+- Theme colors: light base `#FBF0D9`, dark base `#0e0e10`. Persisted in `localStorage`.

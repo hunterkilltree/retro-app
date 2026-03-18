@@ -1,0 +1,61 @@
+---
+description: Java Spring Boot backend conventions
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Spring Boot Backend
+
+## Project Structure
+
+```
+backend/src/main/java/com/retro/
+├── config/           # WebSocket, CORS, Jackson, DataSource/JPA config
+├── controller/       # REST controllers (RoomController)
+├── ws/               # WebSocket message handlers
+├── entity/           # JPA entities mapped to PostgreSQL tables
+├── repository/       # Spring Data JPA repositories
+├── dto/              # Request/Response DTOs
+├── service/          # Business logic (RoomService, NoteService)
+├── exception/        # Custom exceptions + global handler
+└── util/             # Room code generator, PDF builder
+```
+
+## Conventions
+
+- Java 21, Spring Boot 3.x, Maven or Gradle.
+- **PostgreSQL 16 with TLS** via Spring Data JPA / Hibernate.
+- DTOs for all WebSocket messages and REST responses — never expose JPA entities directly.
+- Use `@MessageMapping` for STOMP WebSocket handlers; send responses via `SimpMessagingTemplate`.
+- REST endpoints only for: `POST /api/rooms` (create room) and `GET /api/rooms/{id}/export` (PDF).
+
+## JPA / Database
+
+- All entities use `UUID` primary keys generated with `@GeneratedValue(strategy = GenerationType.UUID)`.
+- Entity classes in `entity/` package, named singular (e.g. `Room`, `Note`, `Participant`).
+- Repositories extend `JpaRepository<Entity, UUID>` — add custom query methods as needed.
+- Use `@Transactional` on service methods that perform writes.
+- Connection configured with TLS: `spring.datasource.url=jdbc:postgresql://host:5432/retro?sslmode=require`.
+- Use Flyway or Liquibase for schema migrations in `resources/db/migration/`.
+
+## WebSocket Message Design
+
+Inbound messages (client → server):
+- `AddNote`, `EditNote`, `DeleteNote`
+- `GroupNotes`, `UngroupNote`, `RenameGroup`
+- `AddActionItem`, `AdvanceState`
+
+Outbound messages (server → all clients):
+- Full room state snapshot after each mutation — keeps clients simple.
+- Send via `/topic/room/{roomId}`.
+
+## State Management
+
+- Room state transitions are validated server-side: `SETUP→START→REVIEW→DONE`, forward-only.
+- Admin actions (advance state, group notes, add action items) must verify the sender's role.
+- Timer `endTime` is computed server-side as `Instant.now().plus(duration)` and broadcast to all.
+
+## Error Handling
+
+- Throw `RoomNotFoundException`, `UnauthorizedActionException`, `InvalidStateTransitionException`.
+- Global `@ControllerAdvice` maps exceptions to proper HTTP/WebSocket error responses.

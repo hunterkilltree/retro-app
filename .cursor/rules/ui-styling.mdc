@@ -1,0 +1,41 @@
+---
+description: UI theme and styling conventions
+globs: frontend/**/*.{css,scss,tsx}
+alwaysApply: false
+---
+
+# UI & Styling
+
+## Design System
+
+- Font: **DM Sans** (body), **DM Serif Display** (headings, logo, timer).
+- Border radius: `6-9px` for cards/panels, `20px` for pills/avatars.
+- Transitions: `0.25s` for theme changes, `0.15s` for hover states.
+
+## Theme (CSS Variables)
+
+| Token       | Light        | Dark         |
+|-------------|--------------|--------------|
+| `--bg`      | `#FBF0D9`    | `#0e0e10`    |
+| `--surface` | `#fff`       | `#18181c`    |
+| `--text`    | `#1e1a14`    | `#f0ede8`    |
+| `--accent`  | `#b8820a`    | `#e8b86d`    |
+| `--accent2` | `#5a48d4`    | `#7c6af5`    |
+| `--green`   | `#2d8c5e`    | `#4caf80`    |
+| `--red`     | `#c94040`    | `#e06060`    |
+
+- Toggle via `data-mode="light|dark"` on root element. Persist choice in `localStorage`.
+- Use CSS custom properties for all colors — never hardcode hex values in components.
+
+## Component Styling
+
+- Use **CSS Modules** (`.module.css`) for component-scoped styles.
+- Global theme variables in `styles/globals.css`.
+- Notes: colored left border (`3px solid`) using author's color. Background uses `rgba()` tint of the column color.
+- Skeleton notes: shimmer animation via `@keyframes`, same shape as real notes.
+- Admin crown: amber pill with `👑` prefix. User pill: avatar circle + username.
+
+## Responsive
+
+- Board columns use `flex: 1` with `min-width: 180px` and horizontal scroll on overflow.
+- Mobile support is out of scope for v1 but keep layouts flex-based for future adaptation.

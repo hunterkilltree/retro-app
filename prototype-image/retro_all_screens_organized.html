@@ -1,0 +1,604 @@
+
+<!DOCTYPE html>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FBF0D9;--surface:#fff;--surface2:#f5ead0;--border:#e8dcc8;
+  --text:#1e1a14;--muted:#8a7e6a;--accent:#b8820a;--accent2:#5a48d4;
+  --green:#2d8c5e;--red:#c94040;--purple:#5a48d4;--amber:#b8820a;
+  --shadow:rgba(0,0,0,.07);
+  --note-green-bg:rgba(45,140,94,.1);--note-purple-bg:rgba(90,72,212,.09);
+  --note-amber-bg:rgba(184,130,10,.1);--note-red-bg:rgba(201,64,64,.09);
+  --skel-base:rgba(0,0,0,.06);
+}
+[data-mode="dark"]{
+  --bg:#0e0e10;--surface:#18181c;--surface2:#1f1f25;--border:#2a2a30;
+  --text:#f0ede8;--muted:#7a7880;--accent:#e8b86d;--accent2:#7c6af5;
+  --green:#4caf80;--red:#e06060;--purple:#7c6af5;--amber:#e8b86d;
+  --shadow:rgba(0,0,0,.4);
+  --note-green-bg:rgba(76,175,128,.1);--note-purple-bg:rgba(124,106,245,.1);
+  --note-amber-bg:rgba(232,184,109,.1);--note-red-bg:rgba(224,96,96,.1);
+  --skel-base:rgba(255,255,255,.07);
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;transition:background .25s,color .25s;min-height:100vh}
+
+/* ── OUTER NAV ── */
+.outer-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:0;height:44px;justify-content:space-between;transition:background .25s,border-color .25s}
+.logo{font-family:'DM Serif Display',serif;font-size:15px;color:var(--text);flex-shrink:0;margin-right:16px}
+.state-tabs{display:flex;gap:0;flex:1}
+.state-tab{display:flex;align-items:center;gap:0;position:relative}
+.state-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:0 10px;white-space:nowrap;cursor:default}
+.view-btns{display:flex;gap:2px}
+.vtab{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.vtab:hover{border-color:var(--accent2);color:var(--accent2)}
+.vtab.active{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.vtab.sole{background:var(--surface2);color:var(--muted)}
+.vtab.sole.active{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.sep{width:1px;height:20px;background:var(--border);margin:0 8px;flex-shrink:0}
+.theme-toggle{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:3px;flex-shrink:0;margin-left:8px}
+.tbtn{border:none;background:transparent;cursor:pointer;border-radius:4px;width:26px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);transition:all .15s}
+.tbtn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px var(--shadow)}
+
+/* ── SCREEN WRAPPER ── */
+.screen{display:none;flex-direction:column;height:calc(100vh - 44px);min-height:460px}
+.screen.visible{display:flex}
+
+/* ── TOPBAR (inner) ── */
+.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;transition:background .25s,border-color .25s}
+.t-logo{font-family:'DM Serif Display',serif;font-size:15px}
+.state-pill{display:flex;align-items:center;gap:6px;border-radius:20px;padding:4px 12px;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.pill-writing{background:rgba(184,130,10,.1);border:1px solid rgba(184,130,10,.25);color:var(--amber)}
+.pill-review{background:rgba(45,140,94,.1);border:1px solid rgba(45,140,94,.25);color:var(--green)}
+.pill-done{background:rgba(90,72,212,.1);border:1px solid rgba(90,72,212,.25);color:var(--purple)}
+.pdot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.timer{font-family:'DM Serif Display',serif;font-size:20px;color:var(--accent)}
+.timer.urgent{color:var(--red);animation:blink .8s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.btn{border:none;border-radius:6px;padding:7px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--accent2);color:#fff}
+.btn-cta{background:var(--accent);color:#fff}
+.btn-ghost{background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+.admin-crown{font-size:10px;background:rgba(184,130,10,.1);border:1px solid rgba(184,130,10,.2);color:var(--amber);border-radius:4px;padding:2px 8px}
+.user-pill{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 10px 3px 5px;font-size:12px}
+.avatar{width:24px;height:24px;border-radius:50%;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* ── HINT BANNER ── */
+.hint{background:rgba(90,72,212,.06);border-bottom:1px solid rgba(90,72,212,.12);padding:6px 20px;font-size:11px;color:var(--accent2);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.hint-warn{background:rgba(184,130,10,.06);border-bottom:1px solid rgba(184,130,10,.15);color:var(--amber)}
+
+/* ── BOARD ── */
+.board{display:flex;gap:0;flex:1;overflow-x:auto}
+.col{flex:1;min-width:180px;border-right:1px solid var(--border);display:flex;flex-direction:column;transition:border-color .25s}
+.col:last-child{border-right:none}
+.col-hdr{padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0}
+.cdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ctitle{font-size:12px;font-weight:500}
+.ccount{margin-left:auto;font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px}
+
+.notes{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px}
+
+.note{border-radius:9px;border-left:3px solid;padding:10px 12px;font-size:12px;line-height:1.55;position:relative;transition:background .25s}
+.note:hover .nact{opacity:1}
+.nact{position:absolute;top:6px;right:7px;display:flex;gap:3px;opacity:0;transition:.15s}
+.nab{background:var(--surface2);border:1px solid var(--border);border-radius:4px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;color:var(--muted)}
+.you-tag{display:inline-block;font-size:9px;background:rgba(45,140,94,.12);color:var(--green);border-radius:3px;padding:1px 5px;margin-top:5px}
+.admin-tag{display:inline-block;font-size:9px;background:rgba(90,72,212,.1);color:var(--purple);border-radius:3px;padding:1px 5px;margin-top:5px}
+
+/* Skeleton */
+.skel{border-radius:9px;border-left:3px solid;padding:10px 12px;position:relative;overflow:hidden}
+.skel::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);background-size:200% 100%;animation:shimmer 2s ease-in-out infinite}
+[data-mode="dark"] .skel::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);background-size:200% 100%;animation:shimmer 2s ease-in-out infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sl{height:8px;border-radius:4px;margin-bottom:6px}
+.sb{height:14px;width:40px;border-radius:3px;margin-top:4px}
+.sg{border-color:rgba(45,140,94,.4);background:rgba(45,140,94,.06)}
+.sg .sl,.sg .sb{background:rgba(45,140,94,.15)}
+.sp{border-color:rgba(90,72,212,.4);background:rgba(90,72,212,.06)}
+.sp .sl,.sp .sb{background:rgba(90,72,212,.13)}
+.sa{border-color:rgba(184,130,10,.4);background:rgba(184,130,10,.06)}
+.sa .sl,.sa .sb{background:rgba(184,130,10,.14)}
+.sr{border-color:rgba(201,64,64,.4);background:rgba(201,64,64,.06)}
+.sr .sl,.sr .sb{background:rgba(201,64,64,.13)}
+
+/* add area */
+.add-area{padding:8px 10px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;transition:background .25s,border-color .25s}
+.add-row{display:flex;gap:6px;align-items:flex-start}
+.add-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:12px;color:var(--text);font-family:'DM Sans',sans-serif;resize:none;height:34px;outline:none;transition:border-color .2s,height .15s,background .25s}
+.add-input:focus{border-color:var(--accent2);height:64px}
+.add-input::placeholder{color:var(--muted)}
+.add-btn-sm{background:var(--accent2);color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:11px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;height:34px;flex-shrink:0}
+
+/* ── SIDEBAR (admin setup) ── */
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:16px;flex-shrink:0;overflow-y:auto;transition:background .25s,border-color .25s}
+.sb-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.timer-box{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px;text-align:center;transition:background .25s}
+.timer-big{font-family:'DM Serif Display',serif;font-size:32px;color:var(--accent);margin:4px 0 8px}
+.timer-chips{display:flex;gap:4px;justify-content:center}
+.chip{background:var(--surface);border:1px solid var(--border);color:var(--muted);border-radius:5px;font-size:10px;padding:3px 8px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.chip.active{border-color:var(--accent);color:var(--accent)}
+.col-list{display:flex;flex-direction:column;gap:6px}
+.col-item{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;transition:background .25s}
+.drag-handle{color:var(--muted);font-size:12px;cursor:grab}
+.add-col-btn{display:flex;align-items:center;gap:6px;border:1px dashed var(--border);border-radius:7px;padding:8px 10px;color:var(--muted);font-size:12px;cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;transition:.15s}
+.add-col-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+.main-area{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+
+/* lobby */
+.lobby{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;transition:background .25s}
+.lobby-user{display:flex;align-items:center;gap:5px;font-size:12px}
+.waiting-pill{font-size:11px;color:var(--muted);border:1px dashed var(--border);border-radius:5px;padding:3px 10px}
+
+/* ── REVIEW ── */
+.review-board{display:flex;gap:0;flex:1;overflow-x:auto}
+.group-box{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px;display:flex;flex-direction:column;gap:5px;transition:background .25s,border-color .25s}
+.group-tag{font-size:10px;color:var(--accent2);background:rgba(90,72,212,.08);border:1px solid rgba(90,72,212,.18);border-radius:3px;padding:2px 7px;font-weight:500;width:fit-content}
+.group-edit{font-size:10px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px;margin-left:4px}
+.drop-zone{border:1px dashed var(--border);border-radius:7px;height:28px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+
+/* ── DONE ── */
+.done-layout{display:flex;flex:1;overflow:hidden}
+.done-summary{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;border-right:1px solid var(--border)}
+.done-section{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px;display:flex;flex-direction:column;gap:6px;transition:background .25s}
+.done-section-hdr{display:flex;align-items:center;gap:7px;margin-bottom:2px}
+.note-row{display:flex;align-items:flex-start;gap:6px;font-size:11px;line-height:1.45}
+.nrdot{width:6px;height:6px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.actions-panel{width:260px;padding:16px;display:flex;flex-direction:column;gap:10px;flex-shrink:0;overflow-y:auto;background:var(--surface);transition:background .25s}
+.panel-title{font-family:'DM Serif Display',serif;font-size:17px;margin-bottom:2px}
+.action-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;display:flex;gap:8px;transition:background .25s}
+.action-num{width:18px;height:18px;border-radius:50%;background:rgba(90,72,212,.15);color:var(--accent2);font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.export-hint{background:rgba(184,130,10,.07);border:1px solid rgba(184,130,10,.18);border-radius:7px;padding:10px;font-size:11px;color:var(--amber);line-height:1.6}
+.btn-export-full{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;margin-top:auto}
+
+/* ── LANDING ── */
+.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:32px;text-align:center;position:relative;overflow:hidden}
+.landing-glow{position:absolute;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(90,72,212,.08) 0%,transparent 70%);top:-80px;left:50%;transform:translateX(-50%);pointer-events:none}
+.landing h1{font-family:'DM Serif Display',serif;font-size:46px;line-height:1.1;max-width:480px;margin-bottom:14px}
+.landing h1 em{font-style:italic;color:var(--accent)}
+.landing p{font-size:14px;color:var(--muted);max-width:340px;line-height:1.7;margin-bottom:32px;font-weight:300}
+.landing-btns{display:flex;gap:10px}
+.btn-lg{border:none;border-radius:8px;padding:12px 26px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-lg-primary{background:var(--accent);color:#fff}
+.btn-lg-ghost{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+.no-acct{position:absolute;bottom:24px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.no-acct span{width:24px;height:1px;background:var(--border);display:inline-block}
+</style>
+
+<div id="app" data-mode="light">
+
+<!-- ── OUTER NAV ── -->
+<div class="outer-nav">
+  <div class="logo">Retro</div>
+  <div class="state-tabs">
+
+    <div class="state-tab">
+      <div class="state-label">Entry</div>
+      <div class="view-btns">
+        <button class="vtab sole active" onclick="show('landing')">Landing</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="state-tab">
+      <div class="state-label">Setup</div>
+      <div class="view-btns">
+        <button class="vtab sole" onclick="show('setup-admin')">Admin</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="state-tab">
+      <div class="state-label">▶ Start</div>
+      <div class="view-btns">
+        <button class="vtab" onclick="show('start-admin')">Admin</button>
+        <button class="vtab" onclick="show('start-client')">Guest</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="state-tab">
+      <div class="state-label">👁 Review</div>
+      <div class="view-btns">
+        <button class="vtab" onclick="show('review-admin')">Admin</button>
+        <button class="vtab" onclick="show('review-client')">Guest</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+
+    <div class="state-tab">
+      <div class="state-label">✓ Done</div>
+      <div class="view-btns">
+        <button class="vtab" onclick="show('done-admin')">Admin</button>
+        <button class="vtab" onclick="show('done-client')">Guest</button>
+      </div>
+    </div>
+
+  </div>
+  <div class="theme-toggle">
+    <button class="tbtn" id="tb-dark" onclick="setMode('dark')">🌙</button>
+    <button class="tbtn active" id="tb-light" onclick="setMode('light')">☀️</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+  LANDING
+══════════════════════════ -->
+<div class="screen visible" id="s-landing">
+  <div class="landing">
+    <div class="landing-glow"></div>
+    <div style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:11px;color:var(--muted);margin-bottom:24px">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--green)"></span> Real-time retrospectives
+    </div>
+    <h1>Run better <em>retros</em>,<br>together.</h1>
+    <p>No login. No setup. Generate a room, share the link, and start reflecting as a team in seconds.</p>
+    <div class="landing-btns">
+      <button class="btn-lg btn-lg-primary">✦ Generate room</button>
+      <button class="btn-lg btn-lg-ghost">How it works</button>
+    </div>
+    <div class="no-acct"><span></span> No account required <span></span></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+  SETUP — ADMIN
+══════════════════════════ -->
+<div class="screen" id="s-setup-admin">
+  <div class="topbar">
+    <div class="t-logo">Retro</div>
+    <div style="font-size:11px;color:var(--muted)">Room <strong style="color:var(--accent)">XK9-47B</strong> — share this link</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="admin-crown">👑 admin</span>
+      <button class="btn btn-primary">▶ Start session</button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div>
+        <div class="sb-label">Timer</div>
+        <div class="timer-box">
+          <div class="timer-big">05:00</div>
+          <div class="timer-chips">
+            <button class="chip">3m</button>
+            <button class="chip active">5m</button>
+            <button class="chip">10m</button>
+            <button class="chip">15m</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="sb-label">Columns</div>
+        <div class="col-list">
+          <div class="col-item"><span class="cdot" style="background:var(--green)"></span><span style="font-size:12px;flex:1">Went well</span><span class="drag-handle">⠿</span></div>
+          <div class="col-item"><span class="cdot" style="background:var(--red)"></span><span style="font-size:12px;flex:1">To improve</span><span class="drag-handle">⠿</span></div>
+          <div class="col-item"><span class="cdot" style="background:var(--purple)"></span><span style="font-size:12px;flex:1">Ideas</span><span class="drag-handle">⠿</span></div>
+        </div>
+        <button class="add-col-btn" style="margin-top:8px">+ Add column</button>
+      </div>
+    </div>
+    <div class="main-area">
+      <div>
+        <div class="sb-label" style="margin-bottom:8px">Who's in the room</div>
+        <div class="lobby">
+          <div class="lobby-user"><div class="avatar" style="background:var(--purple);color:#fff">MK</div> Mike <span class="admin-crown">admin · you</span></div>
+          <div class="lobby-user"><div class="avatar" style="background:var(--green);color:#fff">SA</div> Sara</div>
+          <div class="lobby-user"><div class="avatar" style="background:var(--amber);color:#fff">JP</div> James</div>
+          <div class="waiting-pill">⏳ Waiting for more…</div>
+        </div>
+      </div>
+      <div class="sb-label">Board preview</div>
+      <div style="display:flex;gap:10px;flex:1">
+        <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px;transition:background .25s">
+          <div class="col-hdr" style="padding:0 0 8px;border:none"><span class="cdot" style="background:var(--green)"></span><span class="ctitle">Went well</span></div>
+          <div style="background:var(--surface2);border-radius:7px;height:44px;border-left:3px solid var(--green);opacity:.5"></div>
+        </div>
+        <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px;transition:background .25s">
+          <div class="col-hdr" style="padding:0 0 8px;border:none"><span class="cdot" style="background:var(--red)"></span><span class="ctitle">To improve</span></div>
+          <div style="background:var(--surface2);border-radius:7px;height:44px;border-left:3px solid var(--red);opacity:.5;margin-bottom:6px"></div>
+          <div style="background:var(--surface2);border-radius:7px;height:44px;border-left:3px solid var(--red);opacity:.5"></div>
+        </div>
+        <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px;transition:background .25s">
+          <div class="col-hdr" style="padding:0 0 8px;border:none"><span class="cdot" style="background:var(--purple)"></span><span class="ctitle">Ideas</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+  START — ADMIN
+══════════════════════════ -->
+<div class="screen" id="s-start-admin">
+  <div class="topbar">
+    <div class="t-logo">Retro</div>
+    <div class="state-pill pill-writing"><span class="pdot"></span> Writing in progress</div>
+    <div class="timer" id="t-admin">04:12</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="admin-crown">👑 admin</span>
+      <button class="btn btn-primary">→ Move to Review</button>
+    </div>
+  </div>
+  <div class="hint hint-warn">👑 Admin view — you can read all notes as they are written in real time.</div>
+  <div class="board">
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--green)"></span><span class="ctitle">Went well</span><span class="ccount">2</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-green-bg);border-color:var(--green)">Daily standups improved a lot this sprint<div class="note-author" style="margin-top:5px"><span style="font-size:10px;color:var(--green)">Sara</span></div></div>
+        <div class="note" style="background:var(--note-purple-bg);border-color:var(--purple)">Deployment pipeline worked flawlessly<div style="margin-top:5px;font-size:10px;color:var(--purple)">James</div></div>
+      </div>
+      <div class="add-area"><div class="add-row"><textarea class="add-input" placeholder="Went well…"></textarea><button class="add-btn-sm">Add</button></div></div>
+    </div>
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--red)"></span><span class="ctitle">To improve</span><span class="ccount">2</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-amber-bg);border-color:var(--amber)">Too many context switches mid-sprint<div style="margin-top:5px;font-size:10px;color:var(--amber)">Mike (you)</div></div>
+        <div class="note" style="background:var(--note-purple-bg);border-color:var(--purple)">Ticket estimates were way off<div style="margin-top:5px;font-size:10px;color:var(--purple)">James</div></div>
+      </div>
+      <div class="add-area"><div class="add-row"><textarea class="add-input" placeholder="To improve…"></textarea><button class="add-btn-sm">Add</button></div></div>
+    </div>
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--purple)"></span><span class="ctitle">Ideas</span><span class="ccount">1</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-green-bg);border-color:var(--green)">Try async standups on Fridays<div style="margin-top:5px;font-size:10px;color:var(--green)">Sara</div></div>
+      </div>
+      <div class="add-area"><div class="add-row"><textarea class="add-input" placeholder="Ideas…"></textarea><button class="add-btn-sm">Add</button></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+  START — GUEST/CLIENT
+══════════════════════════ -->
+<div class="screen" id="s-start-client">
+  <div class="topbar">
+    <div class="t-logo">Retro</div>
+    <div class="state-pill pill-writing"><span class="pdot"></span> Writing in progress</div>
+    <div class="timer" id="t-client">04:12</div>
+    <div class="user-pill"><div class="avatar" style="background:var(--green);color:#fff">SA</div> Sara</div>
+  </div>
+  <div class="hint">👁 Only you can read your own notes — others appear hidden until review begins.</div>
+  <div class="board">
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--green)"></span><span class="ctitle">Went well</span><span class="ccount">3</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-green-bg);border-color:var(--green)">Daily standups improved a lot this sprint<div class="note-actions"><button class="nab">✎</button><button class="nab">✕</button></div><div><span class="you-tag">you</span></div></div>
+        <div class="skel sp"><div class="sl" style="width:78%"></div><div class="sl" style="width:50%"></div><div class="sb"></div></div>
+        <div class="skel sa"><div class="sl" style="width:65%"></div><div class="sb"></div></div>
+      </div>
+      <div class="add-area"><div class="add-row"><textarea class="add-input" placeholder="What went well?"></textarea><button class="add-btn-sm">Add</button></div></div>
+    </div>
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--red)"></span><span class="ctitle">To improve</span><span class="ccount">3</span></div>
+      <div class="notes">
+        <div class="skel sa"><div class="sl" style="width:80%"></div><div class="sl" style="width:45%"></div><div class="sb"></div></div>
+        <div class="skel sp"><div class="sl" style="width:60%"></div><div class="sb"></div></div>
+        <div class="note" style="background:var(--note-amber-bg);border-color:var(--amber)">We need better ticket grooming before sprint planning<div class="note-actions"><button class="nab">✎</button><button class="nab">✕</button></div><div><span class="you-tag">you</span></div></div>
+      </div>
+      <div class="add-area"><div class="add-row"><textarea class="add-input" placeholder="What could be better?"></textarea><button class="add-btn-sm">Add</button></div></div>
+    </div>
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--purple)"></span><span class="ctitle">Ideas</span><span class="ccount">2</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-green-bg);border-color:var(--green)">Try async standups on Fridays<div class="note-actions"><button class="nab">✎</button><button class="nab">✕</button></div><div><span class="you-tag">you</span></div></div>
+        <div class="skel sr"><div class="sl" style="width:55%"></div><div class="sl" style="width:40%"></div><div class="sb"></div></div>
+      </div>
+      <div class="add-area"><div class="add-row"><textarea class="add-input" placeholder="Any ideas?"></textarea><button class="add-btn-sm">Add</button></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+  REVIEW — ADMIN
+══════════════════════════ -->
+<div class="screen" id="s-review-admin">
+  <div class="topbar">
+    <div class="t-logo">Retro</div>
+    <div class="state-pill pill-review"><span class="pdot"></span> Review — all notes visible</div>
+    <div style="font-size:11px;color:var(--muted)">5 notes · XK9-47B</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="admin-crown">👑 admin</span>
+      <button class="btn btn-primary">→ Move to Done</button>
+    </div>
+  </div>
+  <div class="hint hint-warn">👑 Drag notes onto each other to group them. Click a group name to rename it.</div>
+  <div class="review-board">
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--green)"></span><span class="ctitle">Went well</span><span class="ccount">3</span></div>
+      <div class="notes">
+        <div class="group-box">
+          <div style="display:flex;align-items:center;gap:4px"><span class="group-tag">Team communication</span><span class="group-edit">rename</span></div>
+          <div class="note" style="background:var(--note-green-bg);border-color:var(--green);cursor:grab">Daily standups improved a lot<div style="font-size:10px;color:var(--green);margin-top:4px">Sara</div></div>
+          <div class="note" style="background:var(--note-green-bg);border-color:var(--green);cursor:grab">Code reviews were fast<div style="font-size:10px;color:var(--green);margin-top:4px">Sara</div></div>
+        </div>
+        <div class="note" style="background:var(--note-purple-bg);border-color:var(--purple);cursor:grab">Deployment pipeline worked<div style="font-size:10px;color:var(--purple);margin-top:4px">James</div></div>
+        <div class="drop-zone">drop here to group</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--red)"></span><span class="ctitle">To improve</span><span class="ccount">2</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-amber-bg);border-color:var(--amber);cursor:grab">Too many context switches<div style="font-size:10px;color:var(--amber);margin-top:4px">Mike</div></div>
+        <div class="note" style="background:var(--note-purple-bg);border-color:var(--purple);cursor:grab">Ticket estimates were way off<div style="font-size:10px;color:var(--purple);margin-top:4px">James</div></div>
+        <div class="drop-zone">drop here to group</div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--purple)"></span><span class="ctitle">Ideas</span><span class="ccount">1</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-green-bg);border-color:var(--green);cursor:grab">Try async standups on Fridays<div style="font-size:10px;color:var(--green);margin-top:4px">Sara</div></div>
+        <div class="drop-zone">drop here to group</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+  REVIEW — GUEST
+══════════════════════════ -->
+<div class="screen" id="s-review-client">
+  <div class="topbar">
+    <div class="t-logo">Retro</div>
+    <div class="state-pill pill-review"><span class="pdot"></span> Review — all notes visible</div>
+    <div style="font-size:11px;color:var(--muted)">5 notes · XK9-47B</div>
+    <div class="user-pill"><div class="avatar" style="background:var(--green);color:#fff">SA</div> Sara</div>
+  </div>
+  <div class="hint">👁 All notes are now revealed. The admin is grouping — watch the board update in real time.</div>
+  <div class="review-board">
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--green)"></span><span class="ctitle">Went well</span></div>
+      <div class="notes">
+        <div class="group-box">
+          <div style="display:flex;align-items:center;gap:4px"><span class="group-tag">Team communication</span></div>
+          <div class="note" style="background:var(--note-green-bg);border-color:var(--green)">Daily standups improved a lot<div style="margin-top:4px"><span class="you-tag">you</span></div></div>
+          <div class="note" style="background:var(--note-green-bg);border-color:var(--green)">Code reviews were fast<div style="margin-top:4px"><span class="you-tag">you</span></div></div>
+        </div>
+        <div class="note" style="background:var(--note-purple-bg);border-color:var(--purple)">Deployment pipeline worked<div style="font-size:10px;color:var(--purple);margin-top:4px">James</div></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--red)"></span><span class="ctitle">To improve</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-amber-bg);border-color:var(--amber)">Too many context switches<div style="font-size:10px;color:var(--amber);margin-top:4px">Mike</div></div>
+        <div class="note" style="background:var(--note-purple-bg);border-color:var(--purple)">Ticket estimates were way off<div style="font-size:10px;color:var(--purple);margin-top:4px">James</div></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="col-hdr"><span class="cdot" style="background:var(--purple)"></span><span class="ctitle">Ideas</span></div>
+      <div class="notes">
+        <div class="note" style="background:var(--note-green-bg);border-color:var(--green)">Try async standups on Fridays<div style="margin-top:4px"><span class="you-tag">you</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+  DONE — ADMIN
+══════════════════════════ -->
+<div class="screen" id="s-done-admin">
+  <div class="topbar">
+    <div class="t-logo">Retro</div>
+    <div class="state-pill pill-done"><span class="pdot"></span> Session complete</div>
+    <div style="font-size:11px;color:var(--muted)">5 notes · 2 actions</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="admin-crown">👑 admin</span>
+      <button class="btn btn-cta">↓ Export PDF</button>
+    </div>
+  </div>
+  <div class="done-layout">
+    <div class="done-summary">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Session summary</div>
+      <div class="done-section">
+        <div class="done-section-hdr"><span class="cdot" style="background:var(--green)"></span><span class="ctitle">Went well</span></div>
+        <div class="group-box"><div class="group-tag">Team communication</div>
+          <div class="note-row"><span class="nrdot" style="background:var(--green)"></span>Daily standups improved a lot</div>
+          <div class="note-row"><span class="nrdot" style="background:var(--green)"></span>Code reviews were fast</div>
+        </div>
+        <div class="note-row" style="padding:0 4px"><span class="nrdot" style="background:var(--purple)"></span>Deployment pipeline worked flawlessly</div>
+      </div>
+      <div class="done-section">
+        <div class="done-section-hdr"><span class="cdot" style="background:var(--red)"></span><span class="ctitle">To improve</span></div>
+        <div class="note-row" style="padding:0 4px"><span class="nrdot" style="background:var(--amber)"></span>Too many context switches mid-sprint</div>
+        <div class="note-row" style="padding:0 4px"><span class="nrdot" style="background:var(--purple)"></span>Ticket estimates were way off</div>
+      </div>
+      <div class="done-section">
+        <div class="done-section-hdr"><span class="cdot" style="background:var(--purple)"></span><span class="ctitle">Ideas</span></div>
+        <div class="note-row" style="padding:0 4px"><span class="nrdot" style="background:var(--green)"></span>Try async standups on Fridays</div>
+      </div>
+    </div>
+    <div class="actions-panel">
+      <div><div class="panel-title">Action items</div><div style="font-size:11px;color:var(--muted)">Add follow-ups from this retro</div></div>
+      <div class="action-item"><div class="action-num">1</div><div style="font-size:11px;line-height:1.5">Fix estimate calibration next sprint</div></div>
+      <div class="action-item"><div class="action-num">2</div><div style="font-size:11px;line-height:1.5">Pilot async Fridays starting next week</div></div>
+      <div class="action-item" style="border-style:dashed;background:transparent">
+        <div class="action-num" style="background:transparent;border:1px dashed var(--border)">+</div>
+        <input style="flex:1;background:transparent;border:none;outline:none;font-size:11px;color:var(--muted);font-family:'DM Sans',sans-serif" placeholder="Add action item…">
+      </div>
+      <div class="export-hint">✦ PDF will include all notes, groups, and this action list.</div>
+      <button class="btn-export-full">↓ Export PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+  DONE — GUEST
+══════════════════════════ -->
+<div class="screen" id="s-done-client">
+  <div class="topbar">
+    <div class="t-logo">Retro</div>
+    <div class="state-pill pill-done"><span class="pdot"></span> Session complete</div>
+    <div style="font-size:11px;color:var(--muted)">5 notes · 2 actions</div>
+    <div class="user-pill"><div class="avatar" style="background:var(--green);color:#fff">SA</div> Sara</div>
+  </div>
+  <div class="hint">✓ The retro is complete. Review the action items below — your admin will share the PDF summary.</div>
+  <div class="done-layout">
+    <div class="done-summary">
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">Session summary</div>
+      <div class="done-section">
+        <div class="done-section-hdr"><span class="cdot" style="background:var(--green)"></span><span class="ctitle">Went well</span></div>
+        <div class="group-box"><div class="group-tag">Team communication</div>
+          <div class="note-row"><span class="nrdot" style="background:var(--green)"></span>Daily standups improved a lot<span class="you-tag" style="margin-left:5px">you</span></div>
+          <div class="note-row"><span class="nrdot" style="background:var(--green)"></span>Code reviews were fast<span class="you-tag" style="margin-left:5px">you</span></div>
+        </div>
+        <div class="note-row" style="padding:0 4px"><span class="nrdot" style="background:var(--purple)"></span>Deployment pipeline worked flawlessly</div>
+      </div>
+      <div class="done-section">
+        <div class="done-section-hdr"><span class="cdot" style="background:var(--red)"></span><span class="ctitle">To improve</span></div>
+        <div class="note-row" style="padding:0 4px"><span class="nrdot" style="background:var(--amber)"></span>Too many context switches mid-sprint</div>
+        <div class="note-row" style="padding:0 4px"><span class="nrdot" style="background:var(--purple)"></span>Ticket estimates were way off</div>
+      </div>
+      <div class="done-section">
+        <div class="done-section-hdr"><span class="cdot" style="background:var(--purple)"></span><span class="ctitle">Ideas</span></div>
+        <div class="note-row" style="padding:0 4px"><span class="nrdot" style="background:var(--green)"></span>Try async standups on Fridays<span class="you-tag" style="margin-left:5px">you</span></div>
+      </div>
+    </div>
+    <div class="actions-panel">
+      <div><div class="panel-title">Action items</div><div style="font-size:11px;color:var(--muted)">Agreed follow-ups for the team</div></div>
+      <div class="action-item"><div class="action-num">1</div><div style="font-size:11px;line-height:1.5">Fix estimate calibration next sprint</div></div>
+      <div class="action-item"><div class="action-num">2</div><div style="font-size:11px;line-height:1.5">Pilot async Fridays starting next week</div></div>
+      <div class="export-hint" style="margin-top:auto">✦ The admin will export and share the full PDF with the team.</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+const screens = {
+  'landing':'s-landing','setup-admin':'s-setup-admin',
+  'start-admin':'s-start-admin','start-client':'s-start-client',
+  'review-admin':'s-review-admin','review-client':'s-review-client',
+  'done-admin':'s-done-admin','done-client':'s-done-client'
+};
+function show(id){
+  Object.values(screens).forEach(s=>document.getElementById(s).classList.remove('visible'));
+  document.getElementById(screens[id]).classList.add('visible');
+  document.querySelectorAll('.vtab').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+function setMode(m){
+  document.getElementById('app').setAttribute('data-mode',m);
+  document.getElementById('tb-dark').classList.toggle('active',m==='dark');
+  document.getElementById('tb-light').classList.toggle('active',m==='light');
+}
+// Timers
+let s1=252,s2=252;
+function tick(){
+  [['t-admin',s1],['t-client',s2]].forEach(([id,s])=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const m=Math.floor(s/60).toString().padStart(2,'0');
+    const sc=(s%60).toString().padStart(2,'0');
+    el.textContent=m+':'+sc;
+    el.classList.toggle('urgent',s<30);
+  });
+  if(s1>0)s1--;
+  if(s2>0)s2--;
+  setTimeout(tick,1000);
+}
+tick();
+document.querySelectorAll('.add-input').forEach(el=>{
+  el.addEventListener('focus',()=>el.style.height='64px');
+  el.addEventListener('blur',()=>{ if(!el.value) el.style.height='34px'; });
+});
+</script>

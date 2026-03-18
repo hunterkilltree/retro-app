@@ -1,0 +1,54 @@
+---
+description: PostgreSQL 16 database conventions and JPA entity mapping
+globs: "backend/**/*.{java,sql}"
+alwaysApply: false
+---
+
+# PostgreSQL 16 Database
+
+## Connection
+
+- TLS required: `sslmode=require` in JDBC URL.
+- Connection pool via HikariCP (Spring Boot default).
+- Config in `application.yml` — never commit credentials; use env vars or Spring profiles.
+
+## Schema Conventions
+
+- Table names: lowercase `snake_case`, plural (e.g. `board_columns`, `note_groups`).
+- Column names: lowercase `snake_case` (e.g. `room_id`, `timer_started_at`).
+- All primary keys: `UUID` type, column named `id`.
+- Foreign keys: `<referenced_table_singular>_id` (e.g. `room_id`, `column_id`, `participant_id`).
+- Ordering fields: `position` (integer) for columns, notes, groups, and action items.
+- Timestamps: `created_at` on all tables, `updated_at` on `notes`.
+
+## JPA Entity Mapping
+
+```java
+@Entity
+@Table(name = "board_columns")
+public class BoardColumn {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false)
+    private Room room;
+}
+```
+
+- Use `FetchType.LAZY` for all `@ManyToOne` / `@OneToMany` by default.
+- Map `snake_case` columns with Spring's `spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy` (default).
+- `notes.group_id` is nullable (ungrouped notes have `group_id = NULL`).
+
+## Migrations
+
+- Use **Flyway** with versioned scripts in `resources/db/migration/`.
+- Naming: `V1__create_rooms.sql`, `V2__create_participants.sql`, etc.
+- Never use `ddl-auto=update` in production; set `ddl-auto=validate`.
+
+## Queries
+
+- Prefer Spring Data derived query methods or `@Query` with JPQL.
+- For bulk operations or complex queries, use native SQL with `@Query(nativeQuery = true)`.
+- Always fetch room data in a single optimized query when building WebSocket snapshots to avoid N+1.

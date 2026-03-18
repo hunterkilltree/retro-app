@@ -1,0 +1,49 @@
+---
+description: Next.js TypeScript frontend conventions
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Next.js Frontend
+
+## Project Structure
+
+```
+frontend/
+├── app/                  # App Router pages and layouts
+│   ├── layout.tsx        # Root layout with providers
+│   ├── page.tsx          # Landing page (Generate Room)
+│   └── [roomId]/
+│       └── page.tsx      # Room page (all board states)
+├── components/           # Reusable UI components
+│   ├── board/            # Board, Column, Note, NoteGroup
+│   ├── admin/            # Admin-only: Setup, ActionItems, GroupControls
+│   └── ui/               # Shared: Button, Avatar, Timer, ThemeToggle
+├── hooks/                # Custom hooks (useWebSocket, useRoom, useTimer)
+├── lib/                  # Utilities, API client, WebSocket client
+├── stores/               # State management (Zustand)
+├── types/                # Shared TypeScript types and enums
+└── styles/               # Global CSS variables and theme
+```
+
+## Patterns
+
+- Use **Server Components** by default; add `"use client"` only when hooks/interactivity needed.
+- State management with **Zustand** — one store per domain concern (room, board, user).
+- All types go in `types/` — mirror the backend domain model exactly.
+- Use `enum BoardState { SETUP, START, REVIEW, DONE }` to match backend.
+- Skeleton notes for guest view: render `<SkeletonNote color={authorColor} />` when user is guest and note is not theirs.
+
+## WebSocket Client
+
+- Connect via SockJS + STOMP to `ws://<backend>/ws`.
+- Subscribe to `/topic/room/{roomId}` for broadcasts.
+- Send actions to `/app/room/{roomId}/*` destinations.
+- Reconnect automatically on disconnect with exponential backoff.
+
+## Component Guidelines
+
+- Props interfaces defined above each component, suffixed with `Props` (e.g. `NoteCardProps`).
+- Conditional rendering based on `user.role` (ADMIN vs GUEST) — never duplicate entire pages.
+- Drag-and-drop in Review state: use `@dnd-kit/core` for note grouping.
+- Timer component receives `endTime` from server and counts down locally.

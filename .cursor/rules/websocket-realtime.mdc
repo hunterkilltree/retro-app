@@ -1,0 +1,37 @@
+---
+description: WebSocket and real-time sync conventions
+globs: "**/*{WebSocket,Ws,ws,socket,stomp}*"
+alwaysApply: false
+---
+
+# WebSocket & Real-Time Sync
+
+## Protocol
+
+- **STOMP over SockJS** — Spring `@EnableWebSocketMessageBroker` on backend, `@stomp/stompjs` + `sockjs-client` on frontend.
+- Endpoint: `/ws` (SockJS), broker prefix: `/topic`, app prefix: `/app`.
+
+## Message Flow
+
+1. Client connects → server sends current room snapshot on subscribe.
+2. Client sends action (e.g. `AddNote`) → server validates, mutates state, broadcasts updated room snapshot to `/topic/room/{roomId}`.
+3. All clients receive snapshot and replace local state (single source of truth = server).
+
+## Frontend Rules
+
+- One WebSocket connection per room session — managed in a `useWebSocket` hook or Zustand middleware.
+- On receiving a room snapshot, replace the entire room store (not merge).
+- Optimistic UI only for the user's own note creation — revert if server rejects.
+- Handle disconnect: show a reconnecting banner, retry with exponential backoff (1s, 2s, 4s, max 30s).
+
+## Backend Rules
+
+- `WebSocketConfig` registers STOMP endpoints with allowed origins matching the frontend URL.
+- Use `SimpMessagingTemplate.convertAndSend()` for broadcasting.
+- Track connected users per room via `SessionConnectEvent` / `SessionDisconnectEvent`.
+- New user joining mid-session receives the full room state on subscription via `@SubscribeMapping`.
+
+## Security
+
+- Validate admin role server-side before executing admin-only actions (advance state, group, action items).
+- Identify users by WebSocket session ID mapped to their room membership.
