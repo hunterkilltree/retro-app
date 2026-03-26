@@ -1,4 +1,4 @@
-package com.example.retro_server;
+package com.retro;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,3 +11,4 @@ class RetroServerApplicationTests {
 	}
 
 }
+

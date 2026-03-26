@@ -6,7 +6,7 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-retro_db}
+      POSTGRES_DB: ${POSTGRES_DB:-retrodb}
       POSTGRES_USER: ${POSTGRES_USER:-retro}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-retro_secret}
     volumes:
@@ -16,3 +16,4 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
