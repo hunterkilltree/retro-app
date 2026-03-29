@@ -3,3 +3,7 @@ docker-data/
 
 # Environment variables (credentials)
 .env
+
+.idea/
+
+
