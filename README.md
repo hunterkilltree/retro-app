@@ -2,6 +2,8 @@
 
 A real-time retrospective board. Create a room, share the link, and run a structured retro session with your team — no login required.
 
+🚀 **Live app:** https://retro-frontend.onrender.com
+
 ---
 
 ## Prerequisites
