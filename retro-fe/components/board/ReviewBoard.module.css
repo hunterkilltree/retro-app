@@ -13,9 +13,10 @@
   align-items: flex-start;
 }
 
+/* ── Column ── */
 .column {
   flex: 1;
-  min-width: 220px;
+  min-width: 240px;
   max-width: 340px;
   display: flex;
   flex-direction: column;
@@ -65,7 +66,7 @@
   flex: 1;
 }
 
-/* Read-only note card */
+/* ── Ungrouped note (draggable) ── */
 .noteCard {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -75,6 +76,23 @@
   min-height: 70px;
   position: relative;
   word-break: break-word;
+  cursor: grab;
+  transition: box-shadow 0.15s, opacity 0.15s;
+}
+
+.noteCard:hover {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.noteCardDragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+/* Drop-over highlight */
+.noteCardOver {
+  outline: 2px dashed var(--accent2);
+  outline-offset: 2px;
 }
 
 .noteContent {
@@ -88,7 +106,6 @@
   position: absolute;
   bottom: 6px;
   left: 12px;
-  right: 8px;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -106,7 +123,55 @@
   font-weight: 500;
 }
 
-/* Admin bottom bar */
+/* ── Group ── */
+.group {
+  border: 1px solid var(--accent2);
+  border-radius: 9px;
+  overflow: hidden;
+  background: rgba(90, 72, 212, 0.04);
+}
+
+html[data-mode="dark"] .group {
+  background: rgba(124, 106, 245, 0.06);
+}
+
+.groupLabel {
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  border-bottom: 1px solid rgba(90,72,212,0.15);
+  background: rgba(90,72,212,0.06);
+}
+
+.groupNotes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+/* Notes inside a group — drop targets but not draggable out yet */
+.groupedNote {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  border-left: 3px solid transparent;
+  padding: 8px 10px 26px;
+  min-height: 60px;
+  position: relative;
+  word-break: break-word;
+  font-size: 0.88rem;
+}
+
+.groupedNoteOver {
+  outline: 2px dashed var(--accent2);
+  outline-offset: 2px;
+}
+
+/* ── Admin bar ── */
 .adminBar {
   display: flex;
   align-items: center;

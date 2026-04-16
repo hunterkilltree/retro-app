@@ -35,6 +35,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
   const participants = useRoomStore((s) => s.participants);
   const columns      = useRoomStore((s) => s.columns);
   const notes        = useRoomStore((s) => s.notes);
+  const groups       = useRoomStore((s) => s.groups);
   const timerEndsAtMs = useRoomStore((s) => s.timerEndsAtMs);
 
   const { status, sendMessage } = useWebSocket(roomCode, sessionToken);
@@ -59,6 +60,14 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
   }
 
   function handleMoveToReview() {
+    sendMessage(`/app/room/${roomCode}/advanceState`);
+  }
+
+  function handleGroupNotes(draggedNoteId: string, targetNoteId: string) {
+    sendMessage(`/app/room/${roomCode}/groupNotes`, { draggedNoteId, targetNoteId });
+  }
+
+  function handleMoveToDone() {
     sendMessage(`/app/room/${roomCode}/advanceState`);
   }
 
@@ -125,8 +134,10 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
         <ReviewBoard
           columns={columns}
           notes={notes}
+          groups={groups}
           me={me}
-          onMoveToDone={handleMoveToReview}
+          onGroupNotes={handleGroupNotes}
+          onMoveToDone={handleMoveToDone}
         />
       )}
 

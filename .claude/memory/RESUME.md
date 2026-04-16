@@ -1,11 +1,12 @@
 # How to Resume This Project
 
 ## Step 1 — Read these files in order
-1. `retro-app/CLAUDE.md` — monorepo overview, DB schema, board states
-2. `retro-app/.claude/memory/PROGRESS.md` — implementation status per FR
-3. `retro-app/retro-fe/CLAUDE.md` — frontend conventions
-4. `retro-app/retro-server/CLAUDE.md` — backend conventions
-5. `retro-app/.claude/websocket.md` — WS message contracts (if doing WS work)
+1. `retro-app/.claude/memory/RULES.md` — **commit discipline & step size rules (read this first)**
+2. `retro-app/CLAUDE.md` — monorepo overview, DB schema, board states
+3. `retro-app/.claude/memory/PROGRESS.md` — implementation status per FR
+4. `retro-app/retro-fe/CLAUDE.md` — frontend conventions
+5. `retro-app/retro-server/CLAUDE.md` — backend conventions
+6. `retro-app/.claude/websocket.md` — WS message contracts (if doing WS work)
 
 ## Step 2 — Find the first TODO
 Look in PROGRESS.md for the first row marked `🔲 TODO`. That's where to start.

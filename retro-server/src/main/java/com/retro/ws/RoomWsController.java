@@ -2,10 +2,12 @@ package com.retro.ws;
 
 import com.retro.entity.BoardColumn;
 import com.retro.entity.Note;
+import com.retro.entity.NoteGroup;
 import com.retro.entity.Participant;
 import com.retro.entity.Room;
 import com.retro.entity.enums.BoardState;
 import com.retro.entity.enums.ParticipantRole;
+import com.retro.repository.NoteGroupRepository;
 import com.retro.exception.InvalidStateTransitionException;
 import com.retro.exception.RoomNotFoundException;
 import com.retro.exception.UnauthorizedException;
@@ -36,6 +38,7 @@ public class RoomWsController {
     private final ParticipantRepository participantRepository;
     private final BoardColumnRepository boardColumnRepository;
     private final NoteRepository noteRepository;
+    private final NoteGroupRepository noteGroupRepository;
     private final WebSocketSessionRegistry registry;
     private final RoomService roomService;
 
@@ -44,6 +47,7 @@ public class RoomWsController {
             ParticipantRepository participantRepository,
             BoardColumnRepository boardColumnRepository,
             NoteRepository noteRepository,
+            NoteGroupRepository noteGroupRepository,
             WebSocketSessionRegistry registry,
             RoomService roomService
     ) {
@@ -51,6 +55,7 @@ public class RoomWsController {
         this.participantRepository = participantRepository;
         this.boardColumnRepository = boardColumnRepository;
         this.noteRepository = noteRepository;
+        this.noteGroupRepository = noteGroupRepository;
         this.registry = registry;
         this.roomService = roomService;
     }
@@ -199,6 +204,66 @@ public class RoomWsController {
             remaining.get(i).setPosition(i);
         }
         noteRepository.saveAll(remaining);
+
+        roomService.broadcastSnapshot(room);
+    }
+
+    // ─── Grouping ─────────────────────────────────────────────────────────────
+
+    record GroupNotesPayload(String draggedNoteId, String targetNoteId) {}
+
+    /**
+     * Admin drags one note onto another → both land in the same group.
+     * If the target note is already in a group, the dragged note joins that group.
+     * Otherwise a new group is created in the same column.
+     */
+    @MessageMapping("/room/{roomCode}/groupNotes")
+    @Transactional
+    public void groupNotes(
+            @DestinationVariable String roomCode,
+            @Payload GroupNotesPayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (p.getRole() != ParticipantRole.ADMIN) {
+            throw new UnauthorizedException("Only admin can group notes");
+        }
+        if (room.getState() != BoardState.REVIEW) return;
+
+        Note dragged = noteRepository.findById(UUID.fromString(payload.draggedNoteId()))
+                .filter(n -> n.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Dragged note not found"));
+
+        Note target = noteRepository.findById(UUID.fromString(payload.targetNoteId()))
+                .filter(n -> n.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Target note not found"));
+
+        // Notes must be in the same column
+        if (!dragged.getColumn().getId().equals(target.getColumn().getId())) return;
+
+        NoteGroup group;
+        if (target.getGroup() != null) {
+            // Target is already grouped — join that group
+            group = target.getGroup();
+        } else {
+            // Create a new group in this column
+            int position = noteGroupRepository.findByColumnOrderByPosition(target.getColumn()).size();
+            group = new NoteGroup();
+            group.setRoom(room);
+            group.setColumn(target.getColumn());
+            group.setName(null);   // unnamed until admin renames (FR-25)
+            group.setPosition(position);
+            group = noteGroupRepository.save(group);
+            // Put the target note into the new group
+            target.setGroup(group);
+            noteRepository.save(target);
+        }
+
+        // Add dragged note to the group
+        dragged.setGroup(group);
+        noteRepository.save(dragged);
 
         roomService.broadcastSnapshot(room);
     }
