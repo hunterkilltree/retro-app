@@ -13,11 +13,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# BACKEND_URL is baked in at build time for server-side API route calls.
-# Override with --build-arg BACKEND_URL=https://your-api.onrender.com
-ARG BACKEND_URL=http://localhost:8080
-ENV BACKEND_URL=$BACKEND_URL
-
+# BACKEND_URL is injected at runtime via Docker/Render environment variables.
+# No build arg needed — the standalone server reads process.env at startup.
 RUN npm run build
 
 # ─── Stage 3: Runtime ─────────────────────────────────────────────────────────

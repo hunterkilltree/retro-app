@@ -47,7 +47,5 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/retro-frontend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/retro-frontend:${{ github.sha }}
-          build-args: |
-            BACKEND_URL=${{ secrets.BACKEND_URL }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max

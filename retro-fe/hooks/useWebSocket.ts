@@ -6,12 +6,21 @@ import SockJS from "sockjs-client";
 import { useRoomStore } from "@/store/useRoomStore";
 import type { BoardSnapshot } from "@/lib/types";
 
-const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:8080/ws";
-
 const BACKOFF_DELAYS = [1000, 2000, 4000, 8000, 16000, 30000];
 
 export type WsStatus = "connecting" | "connected" | "reconnecting" | "disconnected";
+
+// Fetch the WS URL from the server at runtime so BACKEND_URL env var
+// doesn't need to be baked in at build time.
+async function fetchWsUrl(): Promise<string> {
+  try {
+    const res = await fetch("/api/config");
+    const data = await res.json();
+    return data.wsUrl ?? "http://localhost:8080/ws";
+  } catch {
+    return "http://localhost:8080/ws";
+  }
+}
 
 export function useWebSocket(roomCode: string, sessionToken: string | null) {
   const applyBoardSnapshot = useRoomStore((s) => s.applyBoardSnapshot);
@@ -19,13 +28,15 @@ export function useWebSocket(roomCode: string, sessionToken: string | null) {
   const retryCountRef = useRef(0);
   const [status, setStatus] = useState<WsStatus>("connecting");
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!sessionToken || !roomCode) return;
 
+    const wsUrl = await fetchWsUrl();
+
     const client = new Client({
-      webSocketFactory: () => new SockJS(WS_URL) as WebSocket,
+      webSocketFactory: () => new SockJS(wsUrl) as WebSocket,
       connectHeaders: { "X-Session-Token": sessionToken },
-      reconnectDelay: 0, // manual backoff below
+      reconnectDelay: 0,
 
       onConnect: () => {
         retryCountRef.current = 0;
@@ -43,14 +54,10 @@ export function useWebSocket(roomCode: string, sessionToken: string | null) {
       onDisconnect: () => {
         setStatus("reconnecting");
         const delay =
-          BACKOFF_DELAYS[
-            Math.min(retryCountRef.current, BACKOFF_DELAYS.length - 1)
-          ];
+          BACKOFF_DELAYS[Math.min(retryCountRef.current, BACKOFF_DELAYS.length - 1)];
         retryCountRef.current++;
         setTimeout(() => {
-          if (clientRef.current) {
-            clientRef.current.activate();
-          }
+          if (clientRef.current) clientRef.current.activate();
         }, delay);
       },
 
@@ -71,7 +78,6 @@ export function useWebSocket(roomCode: string, sessionToken: string | null) {
     };
   }, [connect]);
 
-  /** Send a message to the server over STOMP. */
   const sendMessage = useCallback(
     (destination: string, body?: unknown) => {
       clientRef.current?.publish({
