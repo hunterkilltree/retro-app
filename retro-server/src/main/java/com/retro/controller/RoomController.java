@@ -8,6 +8,7 @@ import com.retro.dto.JoinRoomResponse;
 import com.retro.dto.RoomSnapshotResponse;
 import com.retro.dto.SetTimerRequest;
 import com.retro.dto.UpdateColumnRequest;
+import com.retro.service.PdfExportService;
 import com.retro.service.RoomService;
 import com.retro.entity.Participant;
 import com.retro.entity.ActionItem;
@@ -29,7 +30,9 @@ import com.retro.util.RoomCodeGenerator;
 import com.retro.ws.ParticipantJoinedData;
 import com.retro.ws.RoomEvent;
 import com.retro.ws.RoomEventType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,6 +64,7 @@ public class RoomController {
     private final ActionItemRepository actionItemRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final RoomService roomService;
+    private final PdfExportService pdfExportService;
 
     public RoomController(
             RoomRepository roomRepository,
@@ -70,7 +74,8 @@ public class RoomController {
             NoteGroupRepository noteGroupRepository,
             ActionItemRepository actionItemRepository,
             SimpMessagingTemplate messagingTemplate,
-            RoomService roomService
+            RoomService roomService,
+            PdfExportService pdfExportService
     ) {
         this.roomRepository = roomRepository;
         this.participantRepository = participantRepository;
@@ -80,6 +85,7 @@ public class RoomController {
         this.actionItemRepository = actionItemRepository;
         this.messagingTemplate = messagingTemplate;
         this.roomService = roomService;
+        this.pdfExportService = pdfExportService;
     }
 
     @PostMapping
@@ -367,6 +373,33 @@ public class RoomController {
         roomService.broadcastSnapshot(room);
 
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // ─── PDF export ───────────────────────────────────────────────────────────
+
+    @GetMapping("/{roomCode}/export/pdf")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> exportPdf(
+            @PathVariable String roomCode,
+            @RequestHeader("X-Session-Token") String sessionToken
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new UnauthorizedException("Must be a room participant to export"));
+
+        try {
+            byte[] pdf = pdfExportService.export(room);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "retro-" + normalized + ".pdf");
+            return ResponseEntity.ok().headers(headers).body(pdf);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate PDF", e);
+        }
     }
 }
 

@@ -10,6 +10,8 @@ interface DoneBoardProps {
   groups: SnapshotGroup[];
   actionItems: SnapshotActionItem[];
   me: Participant;
+  roomCode: string;
+  sessionToken: string;
   onAddActionItem: (content: string) => void;
   onDeleteActionItem: (id: string) => void;
 }
@@ -20,11 +22,33 @@ export function DoneBoard({
   groups,
   actionItems,
   me,
+  roomCode,
+  sessionToken,
   onAddActionItem,
   onDeleteActionItem,
 }: DoneBoardProps) {
   const isAdmin = me.role === "ADMIN";
   const [draft, setDraft] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/rooms/${encodeURIComponent(roomCode)}/export/pdf`, {
+        headers: { "X-Session-Token": sessionToken },
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `retro-${roomCode}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function submitActionItem() {
     const trimmed = draft.trim();
@@ -91,7 +115,19 @@ export function DoneBoard({
 
       {/* ── Action items section ── */}
       <div className={styles.actionSection}>
-        <div className={styles.sectionTitle}>Action Items</div>
+        <div className={styles.actionHeader}>
+          <div className={styles.sectionTitle} style={{ borderBottom: "none", padding: "18px 24px 10px" }}>
+            Action Items
+          </div>
+          <button
+            className={styles.exportBtn}
+            onClick={handleExport}
+            disabled={exporting}
+            title="Download PDF summary"
+          >
+            {exporting ? "Exporting…" : "⬇ Export PDF"}
+          </button>
+        </div>
 
         <div className={styles.actionList}>
           {actionItems.length === 0 && (

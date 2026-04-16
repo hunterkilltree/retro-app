@@ -168,6 +168,8 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           groups={groups}
           actionItems={actionItems}
           me={me}
+          roomCode={roomCode}
+          sessionToken={sessionToken}
           onAddActionItem={handleAddActionItem}
           onDeleteActionItem={handleDeleteActionItem}
         />
