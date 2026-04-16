@@ -8,8 +8,14 @@ BACKEND_IMAGE="$DOCKERHUB_USERNAME/retro-backend"
 FRONTEND_IMAGE="$DOCKERHUB_USERNAME/retro-frontend"
 
 # ── Login ─────────────────────────────────────────────────────────────────────
-echo "🔐 Logging in to Docker Hub..."
-docker login
+# Login only if DOCKERHUB_TOKEN is provided; otherwise assume Docker Desktop
+# is already authenticated and skip the prompt.
+if [ -n "$DOCKERHUB_TOKEN" ]; then
+  echo "🔐 Logging in to Docker Hub..."
+  echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+else
+  echo "ℹ️  DOCKERHUB_TOKEN not set — skipping login (using existing Docker credentials)"
+fi
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 echo ""
