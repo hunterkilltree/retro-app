@@ -67,6 +67,10 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
     sendMessage(`/app/room/${roomCode}/groupNotes`, { draggedNoteId, targetNoteId });
   }
 
+  function handleRenameGroup(groupId: string, name: string) {
+    sendMessage(`/app/room/${roomCode}/renameGroup`, { groupId, name });
+  }
+
   function handleMoveToDone() {
     sendMessage(`/app/room/${roomCode}/advanceState`);
   }
@@ -137,6 +141,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           groups={groups}
           me={me}
           onGroupNotes={handleGroupNotes}
+          onRenameGroup={handleRenameGroup}
           onMoveToDone={handleMoveToDone}
         />
       )}

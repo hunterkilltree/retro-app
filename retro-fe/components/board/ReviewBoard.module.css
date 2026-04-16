@@ -136,6 +136,9 @@ html[data-mode="dark"] .group {
 }
 
 .groupLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 10px;
   font-size: 0.72rem;
   font-weight: 700;
@@ -144,6 +147,32 @@ html[data-mode="dark"] .group {
   color: var(--accent2);
   border-bottom: 1px solid rgba(90,72,212,0.15);
   background: rgba(90,72,212,0.06);
+  user-select: none;
+}
+
+.groupLabelEdit {
+  font-size: 0.65rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.groupLabel:hover .groupLabelEdit {
+  opacity: 1;
+}
+
+.groupLabelInput {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  background: rgba(90,72,212,0.1);
+  border: none;
+  border-bottom: 1px solid var(--accent2);
+  outline: none;
 }
 
 .groupNotes {

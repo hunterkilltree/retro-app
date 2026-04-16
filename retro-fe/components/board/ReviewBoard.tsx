@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -12,7 +12,6 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
-import { useState } from "react";
 import styles from "./ReviewBoard.module.css";
 import type { BoardColumn, Participant, SnapshotGroup, SnapshotNote } from "@/lib/types";
 
@@ -91,6 +90,66 @@ function GroupedNote({
   );
 }
 
+// ── Inline-editable group label (admin only) ─────────────────────────────────
+function GroupLabel({
+  group,
+  isAdmin,
+  onRename,
+}: {
+  group: SnapshotGroup;
+  isAdmin: boolean;
+  onRename: (groupId: string, name: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(group.name ?? "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit() {
+    if (!isAdmin) return;
+    setDraft(group.name ?? "");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  }
+
+  function commit() {
+    setEditing(false);
+    onRename(group.id, draft);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commit();
+    if (e.key === "Escape") setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className={styles.groupLabelInput}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={handleKeyDown}
+        maxLength={60}
+        placeholder="Group name…"
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <div
+      className={styles.groupLabel}
+      onClick={startEdit}
+      title={isAdmin ? "Click to rename" : undefined}
+      style={{ cursor: isAdmin ? "text" : "default" }}
+    >
+      {group.name || "Group"}
+      {isAdmin && <span className={styles.groupLabelEdit}>✏</span>}
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 interface ReviewBoardProps {
   columns: BoardColumn[];
@@ -98,6 +157,7 @@ interface ReviewBoardProps {
   groups: SnapshotGroup[];
   me: Participant;
   onGroupNotes: (draggedNoteId: string, targetNoteId: string) => void;
+  onRenameGroup: (groupId: string, name: string) => void;
   onMoveToDone: () => void;
 }
 
@@ -107,6 +167,7 @@ export function ReviewBoard({
   groups,
   me,
   onGroupNotes,
+  onRenameGroup,
   onMoveToDone,
 }: ReviewBoardProps) {
   const isAdmin = me.role === "ADMIN";
@@ -178,9 +239,11 @@ export function ReviewBoard({
                     const groupNotes = colData?.groups.get(group.id) ?? [];
                     return (
                       <div key={group.id} className={styles.group}>
-                        <div className={styles.groupLabel}>
-                          {group.name ?? "Group"}
-                        </div>
+                        <GroupLabel
+                          group={group}
+                          isAdmin={isAdmin}
+                          onRename={onRenameGroup}
+                        />
                         <div className={styles.groupNotes}>
                           {groupNotes.map((note) => (
                             <GroupedNote

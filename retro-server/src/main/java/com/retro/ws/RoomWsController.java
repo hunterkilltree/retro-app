@@ -267,4 +267,38 @@ public class RoomWsController {
 
         roomService.broadcastSnapshot(room);
     }
+
+    // ─── Group rename ─────────────────────────────────────────────────────────
+
+    record RenameGroupPayload(String groupId, String name) {}
+
+    /**
+     * Admin renames a group (state must be REVIEW).
+     * Passing an empty/blank name clears the label (shows default "Group" in UI).
+     */
+    @MessageMapping("/room/{roomCode}/renameGroup")
+    @Transactional
+    public void renameGroup(
+            @DestinationVariable String roomCode,
+            @Payload RenameGroupPayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (p.getRole() != ParticipantRole.ADMIN) {
+            throw new UnauthorizedException("Only admin can rename groups");
+        }
+        if (room.getState() != BoardState.REVIEW) return;
+
+        NoteGroup group = noteGroupRepository.findById(UUID.fromString(payload.groupId()))
+                .filter(g -> g.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Group not found"));
+
+        String trimmed = payload.name() == null ? null : payload.name().strip();
+        group.setName(trimmed == null || trimmed.isBlank() ? null : trimmed);
+        noteGroupRepository.save(group);
+
+        roomService.broadcastSnapshot(room);
+    }
 }
