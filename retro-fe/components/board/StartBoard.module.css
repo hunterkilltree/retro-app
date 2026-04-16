@@ -1,0 +1,47 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 52px); /* viewport minus TopBar */
+}
+
+/* Column strip */
+.columns {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  flex: 1;
+  align-items: flex-start;
+}
+
+/* Admin controls bar at bottom */
+.adminBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.reviewBtn {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.reviewBtn:hover { opacity: 0.85; }
+.reviewBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.reviewHint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

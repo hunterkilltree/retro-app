@@ -2,12 +2,16 @@ import { create } from "zustand";
 import type {
   ActionItem,
   BoardColumn,
+  BoardSnapshot,
   BoardState,
   Note,
   NoteGroup,
   Participant,
   Room,
   RoomSnapshot,
+  SnapshotActionItem,
+  SnapshotGroup,
+  SnapshotNote,
 } from "@/lib/types";
 
 export interface RoomStore {
@@ -15,13 +19,18 @@ export interface RoomStore {
   me: Participant | null;
   participants: Participant[];
   columns: BoardColumn[];
-  notes: Note[];
-  groups: NoteGroup[];
-  actionItems: ActionItem[];
+  notes: SnapshotNote[];
+  groups: SnapshotGroup[];
+  actionItems: SnapshotActionItem[];
+  /** Epoch ms when the timer expires. null until session starts. */
+  timerEndsAtMs: number | null;
 
   setFullState: (snapshot: RoomSnapshot) => void;
+  /** Apply a board snapshot received over WebSocket — does NOT overwrite `me`. */
+  applyBoardSnapshot: (snapshot: BoardSnapshot) => void;
   updateRoomState: (state: BoardState) => void;
   addParticipant: (p: Participant) => void;
+  removeParticipant: (id: string) => void;
   addColumn: (c: BoardColumn) => void;
   updateColumn: (c: BoardColumn) => void;
   deleteColumn: (columnId: string) => void;
@@ -55,6 +64,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
   notes: [],
   groups: [],
   actionItems: [],
+  timerEndsAtMs: null,
 
   setFullState: (snapshot) =>
     set({
@@ -62,9 +72,46 @@ export const useRoomStore = create<RoomStore>((set) => ({
       me: snapshot.participant,
       participants: snapshot.participants,
       columns: snapshot.columns,
+      // REST /me returns full Note shape; normalise to SnapshotNote
+      notes: snapshot.notes.map((n) => ({
+        id: n.id,
+        columnId: n.columnId,
+        participantId: n.participantId,
+        groupId: n.groupId,
+        content: n.content,
+        position: n.position,
+        authorName: n.authorName,
+        authorColor: n.authorColor,
+      })),
+      groups: snapshot.groups.map((g) => ({
+        id: g.id,
+        columnId: g.columnId,
+        name: g.name,
+        position: g.position,
+      })),
+      actionItems: snapshot.actionItems.map((a) => ({
+        id: a.id,
+        content: a.content,
+        position: a.position,
+      })),
+      timerEndsAtMs: null, // will be set by next WS snapshot
+    }),
+
+  applyBoardSnapshot: (snapshot) =>
+    set({
+      room: {
+        id: snapshot.room.id,
+        roomCode: snapshot.room.roomCode,
+        state: snapshot.room.state,
+        timerSeconds: snapshot.room.timerSeconds,
+        timerStartedAt: null, // not used for display; timerEndsAtMs is used
+      },
+      participants: snapshot.participants,
+      columns: snapshot.columns,
       notes: snapshot.notes,
       groups: snapshot.groups,
       actionItems: snapshot.actionItems,
+      timerEndsAtMs: snapshot.room.timerEndsAtMs,
     }),
 
   updateRoomState: (state) =>
@@ -73,6 +120,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
     })),
 
   addParticipant: (p) => set((s) => ({ participants: upsertById(s.participants, p) })),
+  removeParticipant: (id) => set((s) => ({ participants: deleteById(s.participants, id) })),
 
   addColumn: (c) => set((s) => ({ columns: upsertById(s.columns, c) })),
   updateColumn: (c) => set((s) => ({ columns: upsertById(s.columns, c) })),
@@ -83,19 +131,37 @@ export const useRoomStore = create<RoomStore>((set) => ({
       groups: s.groups.filter((g) => g.columnId !== columnId),
     })),
 
-  addNote: (n) => set((s) => ({ notes: upsertById(s.notes, n) })),
-  updateNote: (n) => set((s) => ({ notes: upsertById(s.notes, n) })),
+  addNote: (n) =>
+    set((s) => ({
+      notes: upsertById(s.notes, {
+        id: n.id, columnId: n.columnId, participantId: n.participantId,
+        groupId: n.groupId, content: n.content, position: n.position,
+        authorName: n.authorName, authorColor: n.authorColor,
+      }),
+    })),
+  updateNote: (n) =>
+    set((s) => ({
+      notes: upsertById(s.notes, {
+        id: n.id, columnId: n.columnId, participantId: n.participantId,
+        groupId: n.groupId, content: n.content, position: n.position,
+        authorName: n.authorName, authorColor: n.authorColor,
+      }),
+    })),
   deleteNote: (noteId) => set((s) => ({ notes: deleteById(s.notes, noteId) })),
 
-  addGroup: (g) => set((s) => ({ groups: upsertById(s.groups, g) })),
-  updateGroup: (g) => set((s) => ({ groups: upsertById(s.groups, g) })),
+  addGroup: (g) =>
+    set((s) => ({ groups: upsertById(s.groups, { id: g.id, columnId: g.columnId, name: g.name, position: g.position }) })),
+  updateGroup: (g) =>
+    set((s) => ({ groups: upsertById(s.groups, { id: g.id, columnId: g.columnId, name: g.name, position: g.position }) })),
   setNoteGroup: (noteId, groupId) =>
     set((s) => ({
       notes: s.notes.map((n) => (n.id === noteId ? { ...n, groupId } : n)),
     })),
 
-  addActionItem: (a) => set((s) => ({ actionItems: upsertById(s.actionItems, a) })),
-  updateActionItem: (a) => set((s) => ({ actionItems: upsertById(s.actionItems, a) })),
+  addActionItem: (a) =>
+    set((s) => ({ actionItems: upsertById(s.actionItems, { id: a.id, content: a.content, position: a.position }) })),
+  updateActionItem: (a) =>
+    set((s) => ({ actionItems: upsertById(s.actionItems, { id: a.id, content: a.content, position: a.position }) })),
   deleteActionItem: (id) => set((s) => ({ actionItems: deleteById(s.actionItems, id) })),
 
   setTimerStartedAt: (ts) =>
@@ -103,4 +169,3 @@ export const useRoomStore = create<RoomStore>((set) => ({
       room: s.room ? { ...s.room, timerStartedAt: ts } : s.room,
     })),
 }));
-

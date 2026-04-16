@@ -1,27 +1,48 @@
 @import "tailwindcss";
 
+/* ─── Theme tokens ─────────────────────────────── */
 :root {
-  --background: #FBF0D9;
-  --foreground: #171717;
+  --bg:      #FBF0D9;
+  --surface: #fff;
+  --text:    #1e1a14;
+  --text-muted: #6b6357;
+  --accent:  #b8820a;
+  --accent2: #5a48d4;
+  --green:   #2d8c5e;
+  --red:     #c94040;
+  --border:  rgba(30, 26, 20, 0.12);
 }
 
+html[data-mode="dark"] {
+  --bg:      #0e0e10;
+  --surface: #18181c;
+  --text:    #f0ede8;
+  --text-muted: #9e9a95;
+  --accent:  #e8b86d;
+  --accent2: #7c6af5;
+  --green:   #4caf80;
+  --red:     #e06060;
+  --border:  rgba(240, 237, 232, 0.1);
+}
+
+/* ─── Tailwind v4 theme bridge ──────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-dm-serif);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base ─────────────────────────────────────── */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  transition: background 0.25s, color 0.25s;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+* {
+  box-sizing: border-box;
 }

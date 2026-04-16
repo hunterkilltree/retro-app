@@ -56,3 +56,46 @@ export type RoomSnapshotResponse = {
 
 export type RoomSnapshot = RoomSnapshotResponse;
 
+/** Compact note shape used inside WS board snapshots (no timestamps). */
+export type SnapshotNote = {
+  id: string;
+  columnId: string;
+  participantId: string;
+  groupId: string | null;
+  content: string;
+  position: number;
+  authorName: string;
+  authorColor: string;
+};
+
+/** Compact group shape inside WS board snapshots. */
+export type SnapshotGroup = {
+  id: string;
+  columnId: string;
+  name: string | null;
+  position: number;
+};
+
+/** Compact action-item shape inside WS board snapshots. */
+export type SnapshotActionItem = { id: string; content: string; position: number };
+
+/**
+ * Board-only snapshot broadcast over WebSocket to all clients.
+ * Does NOT include the personal `participant` field.
+ * Uses timerEndsAtMs (epoch ms) so clients need no timezone math.
+ */
+export type BoardSnapshot = {
+  room: {
+    id: string;
+    roomCode: string;
+    state: BoardState;
+    timerSeconds: number;
+    timerEndsAtMs: number | null;
+  };
+  participants: Participant[];
+  columns: BoardColumn[];
+  notes: SnapshotNote[];
+  groups: SnapshotGroup[];
+  actionItems: SnapshotActionItem[];
+};
+

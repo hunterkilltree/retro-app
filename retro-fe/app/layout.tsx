@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans, DM_Serif_Display, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${dmSerif.variable} antialiased`}
+        className={`${dmSans.variable} ${geistMono.variable} ${dmSerif.variable} antialiased`}
       >
         {children}
       </body>

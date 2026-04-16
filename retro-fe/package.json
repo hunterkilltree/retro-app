@@ -9,9 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@stomp/stompjs": "^7.3.0",
     "next": "16.1.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "sockjs-client": "^1.6.1",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -19,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sockjs-client": "^1.5.4",
     "eslint": "^9",
     "eslint-config-next": "16.1.7",
     "tailwindcss": "^4",

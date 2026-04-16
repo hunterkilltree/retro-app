@@ -1,0 +1,49 @@
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  border-left: 3px solid transparent;
+  padding: 10px 12px 28px;
+  min-height: 70px;
+  overflow: hidden;
+}
+
+/* Shimmer lines */
+.line {
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    rgba(255,255,255,0.15) 50%,
+    var(--border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+
+.line + .line {
+  margin-top: 8px;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Author dot at bottom */
+.footer {
+  position: absolute;
+  bottom: 6px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.authorDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}

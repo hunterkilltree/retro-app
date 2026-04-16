@@ -1,6 +1,7 @@
 package com.retro.exception;
 
 import com.retro.dto.ApiResponse;
+import com.retro.exception.InvalidStateTransitionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail(ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidStateTransitionException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidStateTransition(InvalidStateTransitionException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
                 .body(ApiResponse.fail(ex.getMessage()));
     }
 

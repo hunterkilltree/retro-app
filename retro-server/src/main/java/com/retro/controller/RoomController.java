@@ -1,10 +1,14 @@
 package com.retro.controller;
 
+import com.retro.dto.AddColumnRequest;
 import com.retro.dto.ApiResponse;
 import com.retro.dto.CreateRoomResponse;
 import com.retro.dto.JoinRoomRequest;
 import com.retro.dto.JoinRoomResponse;
 import com.retro.dto.RoomSnapshotResponse;
+import com.retro.dto.SetTimerRequest;
+import com.retro.dto.UpdateColumnRequest;
+import com.retro.service.RoomService;
 import com.retro.entity.Participant;
 import com.retro.entity.ActionItem;
 import com.retro.entity.BoardColumn;
@@ -29,6 +33,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,6 +60,7 @@ public class RoomController {
     private final NoteGroupRepository noteGroupRepository;
     private final ActionItemRepository actionItemRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final RoomService roomService;
 
     public RoomController(
             RoomRepository roomRepository,
@@ -62,7 +69,8 @@ public class RoomController {
             NoteRepository noteRepository,
             NoteGroupRepository noteGroupRepository,
             ActionItemRepository actionItemRepository,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            RoomService roomService
     ) {
         this.roomRepository = roomRepository;
         this.participantRepository = participantRepository;
@@ -71,6 +79,7 @@ public class RoomController {
         this.noteGroupRepository = noteGroupRepository;
         this.actionItemRepository = actionItemRepository;
         this.messagingTemplate = messagingTemplate;
+        this.roomService = roomService;
     }
 
     @PostMapping
@@ -208,6 +217,156 @@ public class RoomController {
         );
 
         return ResponseEntity.ok(ApiResponse.ok(payload));
+    }
+
+    // ─────────────────────────────────────────────
+    //  Column management (admin only, SETUP state)
+    // ─────────────────────────────────────────────
+
+    @PostMapping("/{roomCode}/columns")
+    @Transactional
+    public ResponseEntity<ApiResponse<RoomSnapshotResponse.Column>> addColumn(
+            @PathVariable String roomCode,
+            @RequestHeader("X-Session-Token") String sessionToken,
+            @Valid @RequestBody AddColumnRequest body
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        Participant admin = participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .filter(p -> p.getRole() == com.retro.entity.enums.ParticipantRole.ADMIN)
+                .orElseThrow(() -> new UnauthorizedException("Only admin can add columns"));
+
+        int nextPosition = boardColumnRepository.findByRoomOrderByPosition(room).size();
+
+        BoardColumn column = new BoardColumn();
+        column.setRoom(room);
+        column.setTitle(body.title().trim());
+        column.setColor(body.color());
+        column.setPosition(nextPosition);
+        BoardColumn saved = boardColumnRepository.save(column);
+
+        roomService.broadcastSnapshot(room);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                new RoomSnapshotResponse.Column(saved.getId(), saved.getTitle(), saved.getColor(), saved.getPosition())
+        ));
+    }
+
+    @PatchMapping("/{roomCode}/columns/{columnId}")
+    @Transactional
+    public ResponseEntity<ApiResponse<RoomSnapshotResponse.Column>> updateColumn(
+            @PathVariable String roomCode,
+            @PathVariable UUID columnId,
+            @RequestHeader("X-Session-Token") String sessionToken,
+            @Valid @RequestBody UpdateColumnRequest body
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .filter(p -> p.getRole() == com.retro.entity.enums.ParticipantRole.ADMIN)
+                .orElseThrow(() -> new UnauthorizedException("Only admin can update columns"));
+
+        BoardColumn column = boardColumnRepository.findById(columnId)
+                .filter(c -> c.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Column not found"));
+
+        if (body.title() != null && !body.title().isBlank()) {
+            column.setTitle(body.title().trim());
+        }
+        if (body.color() != null && !body.color().isBlank()) {
+            column.setColor(body.color());
+        }
+        if (body.position() != null) {
+            // Reorder: shift other columns to make room
+            List<BoardColumn> allCols = boardColumnRepository.findByRoomOrderByPosition(room);
+            allCols.remove(column);
+            int clampedPos = Math.max(0, Math.min(body.position(), allCols.size()));
+            allCols.add(clampedPos, column);
+            for (int i = 0; i < allCols.size(); i++) {
+                allCols.get(i).setPosition(i);
+            }
+            boardColumnRepository.saveAll(allCols);
+        }
+
+        BoardColumn saved = boardColumnRepository.save(column);
+        roomService.broadcastSnapshot(room);
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                new RoomSnapshotResponse.Column(saved.getId(), saved.getTitle(), saved.getColor(), saved.getPosition())
+        ));
+    }
+
+    @DeleteMapping("/{roomCode}/columns/{columnId}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteColumn(
+            @PathVariable String roomCode,
+            @PathVariable UUID columnId,
+            @RequestHeader("X-Session-Token") String sessionToken
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .filter(p -> p.getRole() == com.retro.entity.enums.ParticipantRole.ADMIN)
+                .orElseThrow(() -> new UnauthorizedException("Only admin can delete columns"));
+
+        BoardColumn column = boardColumnRepository.findById(columnId)
+                .filter(c -> c.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Column not found"));
+
+        boardColumnRepository.delete(column);
+
+        // Re-index remaining columns
+        List<BoardColumn> remaining = boardColumnRepository.findByRoomOrderByPosition(room);
+        for (int i = 0; i < remaining.size(); i++) {
+            remaining.get(i).setPosition(i);
+        }
+        boardColumnRepository.saveAll(remaining);
+
+        roomService.broadcastSnapshot(room);
+
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // ─────────────────────────────────────────────
+    //  Timer configuration (admin only, SETUP state)
+    // ─────────────────────────────────────────────
+
+    @PatchMapping("/{roomCode}/timer")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> setTimer(
+            @PathVariable String roomCode,
+            @RequestHeader("X-Session-Token") String sessionToken,
+            @Valid @RequestBody SetTimerRequest body
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .filter(p -> p.getRole() == com.retro.entity.enums.ParticipantRole.ADMIN)
+                .orElseThrow(() -> new UnauthorizedException("Only admin can set the timer"));
+
+        // Only allow valid durations
+        List<Integer> allowed = List.of(180, 300, 600, 900);
+        if (!allowed.contains(body.timerSeconds())) {
+            throw new IllegalArgumentException("Timer must be 180, 300, 600, or 900 seconds");
+        }
+
+        room.setTimerSeconds(body.timerSeconds());
+        roomRepository.save(room);
+        roomService.broadcastSnapshot(room);
+
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }
 

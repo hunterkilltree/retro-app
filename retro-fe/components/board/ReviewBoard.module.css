@@ -1,0 +1,138 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 52px);
+}
+
+.columns {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  flex: 1;
+  align-items: flex-start;
+}
+
+.column {
+  flex: 1;
+  min-width: 220px;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.colorStrip {
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.title {
+  flex: 1;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.count {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--border);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Read-only note card */
+.noteCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  border-left: 3px solid transparent;
+  padding: 10px 12px 28px;
+  min-height: 70px;
+  position: relative;
+  word-break: break-word;
+}
+
+.noteContent {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.noteFooter {
+  position: absolute;
+  bottom: 6px;
+  left: 12px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.authorDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.authorName {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Admin bottom bar */
+.adminBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.doneBtn {
+  height: 38px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--green);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.doneBtn:hover { opacity: 0.85; }
+
+.hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

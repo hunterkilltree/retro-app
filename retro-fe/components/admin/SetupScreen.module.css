@@ -1,0 +1,224 @@
+.layout {
+  display: flex;
+  gap: 24px;
+  padding: 28px 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.main {
+  flex: 1;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Section card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 18px 20px;
+}
+
+.cardTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+/* Add column form */
+.addForm {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.titleInput {
+  flex: 1;
+  min-width: 140px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  padding: 0 10px;
+  font-size: 0.87rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.titleInput:focus {
+  border-color: var(--accent2);
+}
+
+.colorPicker {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.colorSwatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.15);
+}
+
+.colorSwatchSelected {
+  border-color: var(--text);
+}
+
+.addBtn {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 7px;
+  border: none;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.addBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.addBtn:not(:disabled):hover { opacity: 0.88; }
+
+/* Column list */
+.columnList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.columnItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.15s;
+}
+
+.columnItem:active { cursor: grabbing; box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+
+.dragHandle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.columnDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.columnTitle {
+  flex: 1;
+  font-size: 0.87rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+
+.deleteBtn:hover { color: var(--red); background: rgba(201,64,64,0.08); }
+
+.emptyColumns {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* Timer picker */
+.timerOptions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timerBtn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.timerBtn:hover { background: var(--surface); }
+
+.timerBtnActive {
+  background: var(--accent2) !important;
+  border-color: var(--accent2) !important;
+  color: #fff !important;
+}
+
+/* Start session button */
+.startBtn {
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  border: none;
+  background: var(--green);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.startBtn:hover { opacity: 0.88; }
+.startBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.startHint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 6px;
+}

@@ -1,0 +1,135 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.25s;
+}
+
+.logo {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  color: var(--text);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* State badge */
+.stateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.stateSETUP  { background: #e9e3f7; color: #5a48d4; }
+.stateSTART  { background: #d6f0e4; color: #2d8c5e; }
+.stateREVIEW { background: #fef3cd; color: #b8820a; }
+.stateDONE   { background: #f0ede8; color: #6b6357; }
+
+html[data-mode="dark"] .stateSETUP  { background: #2a2450; color: #a99df5; }
+html[data-mode="dark"] .stateSTART  { background: #1a3328; color: #4caf80; }
+html[data-mode="dark"] .stateREVIEW { background: #3a2d10; color: #e8b86d; }
+html[data-mode="dark"] .stateDONE   { background: #1e1e22; color: #9e9a95; }
+
+/* Room code */
+.roomCode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.06em;
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.copyBtn:hover { background: var(--bg); color: var(--text); }
+.copyBtnCopied { color: var(--green) !important; }
+
+/* User identity */
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.username {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.adminBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #fef3cd;
+  color: #b8820a;
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+html[data-mode="dark"] .adminBadge {
+  background: #3a2d10;
+  color: #e8b86d;
+}
+
+/* Theme toggle */
+.themeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.themeBtn:hover { background: var(--bg); }
