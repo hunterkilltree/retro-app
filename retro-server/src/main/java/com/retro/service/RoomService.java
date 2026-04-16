@@ -111,6 +111,17 @@ public class RoomService {
     }
 
     /**
+     * Broadcast a ROOM_CLOSED signal before deleting the room.
+     * Clients receive this and redirect to the home page.
+     */
+    public void broadcastRoomClosed(Room room) {
+        messagingTemplate.convertAndSend(
+                "/topic/room/" + room.getRoomCode(),
+                java.util.Map.of("type", "ROOM_CLOSED")
+        );
+    }
+
+    /**
      * Validate and advance the board state (forward-only: SETUP→START→REVIEW→DONE).
      */
     public BoardState advanceState(Room room) {
