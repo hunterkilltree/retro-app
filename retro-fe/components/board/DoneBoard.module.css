@@ -1,0 +1,266 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: calc(100vh - 52px);
+}
+
+/* ── Section header ── */
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--text);
+  padding: 18px 24px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Summary section ── */
+.summarySection {
+  background: var(--bg);
+}
+
+.columns {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  align-items: flex-start;
+}
+
+.column {
+  flex: 1;
+  min-width: 240px;
+  max-width: 340px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.colHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.colorStrip {
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.colTitle {
+  flex: 1;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.colCount {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--border);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+
+.colNotes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+/* ── Note card ── */
+.noteCard {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  border-radius: 7px;
+  padding: 8px 10px 26px;
+  min-height: 58px;
+  position: relative;
+  word-break: break-word;
+}
+
+.noteContent {
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.noteFooter {
+  position: absolute;
+  bottom: 6px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.authorDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.authorName {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── Group ── */
+.group {
+  border: 1px solid var(--accent2);
+  border-radius: 9px;
+  overflow: hidden;
+  background: rgba(90, 72, 212, 0.04);
+}
+
+html[data-mode="dark"] .group {
+  background: rgba(124, 106, 245, 0.06);
+}
+
+.groupLabel {
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  border-bottom: 1px solid rgba(90,72,212,0.15);
+  background: rgba(90,72,212,0.06);
+}
+
+.groupNotes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+}
+
+/* ── Action items section ── */
+.actionSection {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding-bottom: 40px;
+}
+
+.actionList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 24px 8px;
+  max-width: 700px;
+}
+
+.emptyHint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: 6px 0;
+}
+
+.actionItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.actionIndex {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 18px;
+  margin-top: 1px;
+}
+
+.actionContent {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.deleteBtn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.actionItem:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  color: var(--red);
+}
+
+/* ── Add action item form ── */
+.addRow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 4px 24px 0;
+  max-width: 700px;
+}
+
+.addInput {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  padding: 8px 12px;
+  resize: none;
+  outline: none;
+  font-family: inherit;
+}
+
+.addInput:focus {
+  border-color: var(--accent2);
+}
+
+.addBtn {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.addBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.addBtn:not(:disabled):hover {
+  opacity: 0.85;
+}

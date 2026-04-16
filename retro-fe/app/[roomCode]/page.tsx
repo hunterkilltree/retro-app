@@ -8,6 +8,7 @@ import { TopBar } from "@/components/ui/TopBar";
 import { SetupScreen } from "@/components/admin/SetupScreen";
 import { StartBoard } from "@/components/board/StartBoard";
 import { ReviewBoard } from "@/components/board/ReviewBoard";
+import { DoneBoard } from "@/components/board/DoneBoard";
 import type { ApiResponse, JoinRoomRequest, JoinRoomResponse, RoomSnapshotResponse } from "@/lib/types";
 
 const COLORS = [
@@ -35,7 +36,8 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
   const participants = useRoomStore((s) => s.participants);
   const columns      = useRoomStore((s) => s.columns);
   const notes        = useRoomStore((s) => s.notes);
-  const groups       = useRoomStore((s) => s.groups);
+  const groups        = useRoomStore((s) => s.groups);
+  const actionItems   = useRoomStore((s) => s.actionItems);
   const timerEndsAtMs = useRoomStore((s) => s.timerEndsAtMs);
 
   const { status, sendMessage } = useWebSocket(roomCode, sessionToken);
@@ -77,6 +79,14 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
 
   function handleMoveToDone() {
     sendMessage(`/app/room/${roomCode}/advanceState`);
+  }
+
+  function handleAddActionItem(content: string) {
+    sendMessage(`/app/room/${roomCode}/addActionItem`, { content });
+  }
+
+  function handleDeleteActionItem(actionItemId: string) {
+    sendMessage(`/app/room/${roomCode}/deleteActionItem`, { actionItemId });
   }
 
   if (!room || !me) {
@@ -151,8 +161,16 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
         />
       )}
 
-      {room.state === "DONE" && (
-        <StatePlaceholder label="Session Done" description="Review the summary and action items." />
+      {room.state === "DONE" && me && (
+        <DoneBoard
+          columns={columns}
+          notes={notes}
+          groups={groups}
+          actionItems={actionItems}
+          me={me}
+          onAddActionItem={handleAddActionItem}
+          onDeleteActionItem={handleDeleteActionItem}
+        />
       )}
     </div>
   );

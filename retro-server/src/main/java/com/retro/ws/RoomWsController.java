@@ -7,6 +7,8 @@ import com.retro.entity.Participant;
 import com.retro.entity.Room;
 import com.retro.entity.enums.BoardState;
 import com.retro.entity.enums.ParticipantRole;
+import com.retro.entity.ActionItem;
+import com.retro.repository.ActionItemRepository;
 import com.retro.repository.NoteGroupRepository;
 import com.retro.exception.InvalidStateTransitionException;
 import com.retro.exception.RoomNotFoundException;
@@ -39,6 +41,7 @@ public class RoomWsController {
     private final BoardColumnRepository boardColumnRepository;
     private final NoteRepository noteRepository;
     private final NoteGroupRepository noteGroupRepository;
+    private final ActionItemRepository actionItemRepository;
     private final WebSocketSessionRegistry registry;
     private final RoomService roomService;
 
@@ -48,6 +51,7 @@ public class RoomWsController {
             BoardColumnRepository boardColumnRepository,
             NoteRepository noteRepository,
             NoteGroupRepository noteGroupRepository,
+            ActionItemRepository actionItemRepository,
             WebSocketSessionRegistry registry,
             RoomService roomService
     ) {
@@ -56,6 +60,7 @@ public class RoomWsController {
         this.boardColumnRepository = boardColumnRepository;
         this.noteRepository = noteRepository;
         this.noteGroupRepository = noteGroupRepository;
+        this.actionItemRepository = actionItemRepository;
         this.registry = registry;
         this.roomService = roomService;
     }
@@ -347,6 +352,71 @@ public class RoomWsController {
             }
             noteGroupRepository.delete(group);
         }
+
+        roomService.broadcastSnapshot(room);
+    }
+
+    // ─── Action items (DONE state) ────────────────────────────────────────────
+
+    record AddActionItemPayload(String content) {}
+
+    /** Admin adds an action item (state must be DONE). */
+    @MessageMapping("/room/{roomCode}/addActionItem")
+    @Transactional
+    public void addActionItem(
+            @DestinationVariable String roomCode,
+            @Payload AddActionItemPayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (p.getRole() != ParticipantRole.ADMIN) {
+            throw new UnauthorizedException("Only admin can add action items");
+        }
+        if (room.getState() != BoardState.DONE) return;
+
+        String content = payload.content() == null ? "" : payload.content().strip();
+        if (content.isBlank()) return;
+
+        int position = actionItemRepository.findByRoomOrderByPosition(room).size();
+        ActionItem item = new ActionItem();
+        item.setRoom(room);
+        item.setContent(content);
+        item.setPosition(position);
+        actionItemRepository.save(item);
+
+        roomService.broadcastSnapshot(room);
+    }
+
+    record DeleteActionItemPayload(String actionItemId) {}
+
+    /** Admin deletes an action item (state must be DONE). */
+    @MessageMapping("/room/{roomCode}/deleteActionItem")
+    @Transactional
+    public void deleteActionItem(
+            @DestinationVariable String roomCode,
+            @Payload DeleteActionItemPayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (p.getRole() != ParticipantRole.ADMIN) {
+            throw new UnauthorizedException("Only admin can delete action items");
+        }
+        if (room.getState() != BoardState.DONE) return;
+
+        ActionItem item = actionItemRepository.findById(UUID.fromString(payload.actionItemId()))
+                .filter(a -> a.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Action item not found"));
+
+        actionItemRepository.delete(item);
+
+        // Re-index remaining
+        List<ActionItem> remaining = actionItemRepository.findByRoomOrderByPosition(room);
+        for (int i = 0; i < remaining.size(); i++) remaining.get(i).setPosition(i);
+        actionItemRepository.saveAll(remaining);
 
         roomService.broadcastSnapshot(room);
     }
