@@ -12,7 +12,9 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
-    properties: {}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   flyway:
     enabled: true
