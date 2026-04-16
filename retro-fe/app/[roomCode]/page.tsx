@@ -71,6 +71,10 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
     sendMessage(`/app/room/${roomCode}/renameGroup`, { groupId, name });
   }
 
+  function handleUngroupNote(noteId: string) {
+    sendMessage(`/app/room/${roomCode}/ungroupNote`, { noteId });
+  }
+
   function handleMoveToDone() {
     sendMessage(`/app/room/${roomCode}/advanceState`);
   }
@@ -142,6 +146,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           me={me}
           onGroupNotes={handleGroupNotes}
           onRenameGroup={handleRenameGroup}
+          onUngroupNote={handleUngroupNote}
           onMoveToDone={handleMoveToDone}
         />
       )}

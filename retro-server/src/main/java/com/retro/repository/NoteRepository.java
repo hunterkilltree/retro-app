@@ -2,6 +2,7 @@ package com.retro.repository;
 
 import com.retro.entity.BoardColumn;
 import com.retro.entity.Note;
+import com.retro.entity.NoteGroup;
 import com.retro.entity.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,8 @@ public interface NoteRepository extends JpaRepository<Note, UUID> {
     List<Note> findByRoomOrderByPosition(Room room);
 
     List<Note> findByColumnOrderByPosition(BoardColumn column);
+
+    List<Note> findByGroupOrderByPosition(NoteGroup group);
 
     @Query("""
             select n from Note n

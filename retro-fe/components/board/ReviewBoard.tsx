@@ -62,13 +62,15 @@ function DroppableNote({
   return <div ref={setNodeRef}>{children(isOver)}</div>;
 }
 
-// ── Note inside a group (drop target, not draggable yet) ─────────────────────
+// ── Note inside a group (drop target; admin gets ✕ ungroup button) ───────────
 function GroupedNote({
   note,
-  onDrop,
+  isAdmin,
+  onUngroup,
 }: {
   note: SnapshotNote;
-  onDrop: (targetNoteId: string) => void;
+  isAdmin: boolean;
+  onUngroup: (noteId: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `drop-${note.id}`,
@@ -81,6 +83,16 @@ function GroupedNote({
       className={`${styles.groupedNote} ${isOver ? styles.groupedNoteOver : ""}`}
       style={{ borderLeftColor: note.authorColor }}
     >
+      {isAdmin && (
+        <button
+          className={styles.ungroupBtn}
+          onClick={() => onUngroup(note.id)}
+          title="Remove from group"
+          aria-label="Remove from group"
+        >
+          ✕
+        </button>
+      )}
       <div className={styles.noteContent}>{note.content}</div>
       <div className={styles.noteFooter}>
         <span className={styles.authorDot} style={{ backgroundColor: note.authorColor }} />
@@ -158,6 +170,7 @@ interface ReviewBoardProps {
   me: Participant;
   onGroupNotes: (draggedNoteId: string, targetNoteId: string) => void;
   onRenameGroup: (groupId: string, name: string) => void;
+  onUngroupNote: (noteId: string) => void;
   onMoveToDone: () => void;
 }
 
@@ -168,6 +181,7 @@ export function ReviewBoard({
   me,
   onGroupNotes,
   onRenameGroup,
+  onUngroupNote,
   onMoveToDone,
 }: ReviewBoardProps) {
   const isAdmin = me.role === "ADMIN";
@@ -249,7 +263,8 @@ export function ReviewBoard({
                             <GroupedNote
                               key={note.id}
                               note={note}
-                              onDrop={onGroupNotes.bind(null, "")}
+                              isAdmin={isAdmin}
+                              onUngroup={onUngroupNote}
                             />
                           ))}
                         </div>

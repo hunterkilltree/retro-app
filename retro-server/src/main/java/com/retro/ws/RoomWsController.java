@@ -301,4 +301,53 @@ public class RoomWsController {
 
         roomService.broadcastSnapshot(room);
     }
+
+    // ─── Ungroup note ─────────────────────────────────────────────────────────
+
+    record UngroupNotePayload(String noteId) {}
+
+    /**
+     * Admin removes a note from its group (state must be REVIEW).
+     * If the group has only one note remaining after removal, that note is also
+     * ungrouped and the now-empty group is deleted.
+     */
+    @MessageMapping("/room/{roomCode}/ungroupNote")
+    @Transactional
+    public void ungroupNote(
+            @DestinationVariable String roomCode,
+            @Payload UngroupNotePayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (p.getRole() != ParticipantRole.ADMIN) {
+            throw new UnauthorizedException("Only admin can ungroup notes");
+        }
+        if (room.getState() != BoardState.REVIEW) return;
+
+        Note note = noteRepository.findById(UUID.fromString(payload.noteId()))
+                .filter(n -> n.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Note not found"));
+
+        NoteGroup group = note.getGroup();
+        if (group == null) return; // already ungrouped
+
+        note.setGroup(null);
+        noteRepository.save(note);
+
+        // Find remaining notes in this group
+        List<Note> remaining = noteRepository.findByGroupOrderByPosition(group);
+        if (remaining.size() <= 1) {
+            // Dissolve the group — ungroup the last note if any
+            if (!remaining.isEmpty()) {
+                Note last = remaining.get(0);
+                last.setGroup(null);
+                noteRepository.save(last);
+            }
+            noteGroupRepository.delete(group);
+        }
+
+        roomService.broadcastSnapshot(room);
+    }
 }
