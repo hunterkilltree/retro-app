@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useRoomStore } from "@/store/useRoomStore";
@@ -24,6 +25,8 @@ async function fetchWsUrl(): Promise<string> {
 
 export function useWebSocket(roomCode: string, sessionToken: string | null) {
   const applyBoardSnapshot = useRoomStore((s) => s.applyBoardSnapshot);
+  const clearRoom = useRoomStore((s) => s.clearRoom);
+  const router = useRouter();
   const clientRef = useRef<Client | null>(null);
   const retryCountRef = useRef(0);
   const [status, setStatus] = useState<WsStatus>("connecting");
@@ -43,8 +46,17 @@ export function useWebSocket(roomCode: string, sessionToken: string | null) {
         setStatus("connected");
         client.subscribe(`/topic/room/${roomCode}`, (msg) => {
           try {
-            const snapshot = JSON.parse(msg.body) as BoardSnapshot;
-            applyBoardSnapshot(snapshot);
+            const data = JSON.parse(msg.body);
+            if (data?.type === "ROOM_CLOSED") {
+              // Admin deleted the room — clear store and send everyone home
+              clientRef.current?.deactivate();
+              localStorage.removeItem("session_token");
+              localStorage.removeItem("room_code");
+              clearRoom();
+              router.push("/");
+              return;
+            }
+            applyBoardSnapshot(data as BoardSnapshot);
           } catch {
             // ignore malformed messages
           }
@@ -68,7 +80,7 @@ export function useWebSocket(roomCode: string, sessionToken: string | null) {
 
     clientRef.current = client;
     client.activate();
-  }, [roomCode, sessionToken, applyBoardSnapshot]);
+  }, [roomCode, sessionToken, applyBoardSnapshot, clearRoom, router]);
 
   useEffect(() => {
     connect();

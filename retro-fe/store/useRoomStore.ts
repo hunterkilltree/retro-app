@@ -44,6 +44,7 @@ export interface RoomStore {
   updateActionItem: (a: ActionItem) => void;
   deleteActionItem: (id: string) => void;
   setTimerStartedAt: (ts: string) => void;
+  clearRoom: () => void;
 }
 
 function upsertById<T extends { id: string }>(items: T[], item: T): T[] {
@@ -168,4 +169,16 @@ export const useRoomStore = create<RoomStore>((set) => ({
     set((s) => ({
       room: s.room ? { ...s.room, timerStartedAt: ts } : s.room,
     })),
+
+  clearRoom: () =>
+    set({
+      room: null,
+      me: null,
+      participants: [],
+      columns: [],
+      notes: [],
+      groups: [],
+      actionItems: [],
+      timerEndsAtMs: null,
+    }),
 }));

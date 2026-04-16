@@ -115,6 +115,28 @@ html[data-mode="dark"] .adminBadge {
   color: #e8b86d;
 }
 
+/* Delete Room button */
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid #d9534f;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #d9534f;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.deleteBtn:hover {
+  background: #d9534f;
+  color: #fff;
+}
+
 /* Theme toggle */
 .themeBtn {
   display: inline-flex;

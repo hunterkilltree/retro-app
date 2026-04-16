@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useRoomStore } from "@/store/useRoomStore";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { TopBar } from "@/components/ui/TopBar";
@@ -31,6 +31,7 @@ function Spinner({ size = 24 }: { size?: number }) {
 
 // ─── Board view — shown after joining ────────────────────────────────────────
 function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken: string }) {
+  const router       = useRouter();
   const room         = useRoomStore((s) => s.room);
   const me           = useRoomStore((s) => s.me);
   const participants = useRoomStore((s) => s.participants);
@@ -99,7 +100,17 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <TopBar roomCode={roomCode} state={room.state} me={me} />
+      <TopBar
+        roomCode={roomCode}
+        state={room.state}
+        me={me}
+        sessionToken={sessionToken}
+        onRoomDeleted={() => {
+          localStorage.removeItem(LS_TOKEN_KEY);
+          localStorage.removeItem(LS_ROOM_KEY);
+          router.push("/");
+        }}
+      />
 
       {/* WS reconnecting banner */}
       {status === "reconnecting" && (
