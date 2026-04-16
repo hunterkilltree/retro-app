@@ -117,7 +117,7 @@ public class RoomService {
     public void broadcastRoomClosed(Room room) {
         messagingTemplate.convertAndSend(
                 "/topic/room/" + room.getRoomCode(),
-                java.util.Map.of("type", "ROOM_CLOSED")
+                (Object) java.util.Map.of("type", "ROOM_CLOSED")
         );
     }
 
