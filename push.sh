@@ -2,7 +2,7 @@
 set -e
 
 # ── Config ────────────────────────────────────────────────────────────────────
-DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-your-dockerhub-username}"
+DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-testfeaturedev}"
 
 BACKEND_IMAGE="$DOCKERHUB_USERNAME/retro-backend"
 FRONTEND_IMAGE="$DOCKERHUB_USERNAME/retro-frontend"
