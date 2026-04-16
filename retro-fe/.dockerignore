@@ -1,0 +1,24 @@
+# Next.js build output (rebuilt inside Docker)
+.next/
+out/
+
+# Dependencies (reinstalled inside Docker)
+node_modules/
+
+# Env files (secrets must be passed at runtime, not baked into image)
+.env
+.env.*
+!.env.example
+
+# IDE & OS
+.idea/
+.DS_Store
+*.swp
+
+# Docs & git
+*.md
+.git/
+.gitignore
+
+# Dev config
+*.log

@@ -1,0 +1,17 @@
+# Build output
+build/
+.gradle/
+
+# IDE & OS
+.idea/
+*.iml
+.DS_Store
+*.swp
+
+# Docs & git
+*.md
+.git/
+.gitignore
+
+# Tests (not needed in image)
+src/test/
