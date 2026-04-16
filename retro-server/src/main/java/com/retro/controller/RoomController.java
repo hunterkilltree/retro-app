@@ -401,5 +401,36 @@ public class RoomController {
             throw new RuntimeException("Failed to generate PDF", e);
         }
     }
+
+    // ─── Delete room ──────────────────────────────────────────────────────────
+
+    @DeleteMapping("/{roomCode}")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteRoom(
+            @PathVariable String roomCode,
+            @RequestHeader("X-Session-Token") String sessionToken
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .filter(p -> p.getRole() == com.retro.entity.enums.ParticipantRole.ADMIN)
+                .orElseThrow(() -> new UnauthorizedException("Only admin can delete the room"));
+
+        // Notify all connected clients before data is gone
+        roomService.broadcastRoomClosed(room);
+
+        // Delete in FK-safe order
+        noteRepository.deleteAll(noteRepository.findSnapshotNotesByRoom(room));
+        noteGroupRepository.deleteAll(noteGroupRepository.findSnapshotGroupsByRoom(room));
+        actionItemRepository.deleteAll(actionItemRepository.findByRoomOrderByPosition(room));
+        boardColumnRepository.deleteAll(boardColumnRepository.findByRoomOrderByPosition(room));
+        participantRepository.deleteAll(participantRepository.findByRoom(room));
+        roomRepository.delete(room);
+
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
 }
 
