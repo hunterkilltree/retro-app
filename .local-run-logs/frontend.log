@@ -1,0 +1,105 @@
+
+> retro-fe@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://100.74.219.66:3000
+
+✓ Starting...
+✓ Ready in 9.7s
+○ Compiling / ...
+ GET / 200 in 3.8s (compile: 3.7s, render: 97ms)
+POST /api/rooms failed: TypeError: fetch failed
+    at async POST (app\api\rooms\route.ts:8:17)
+   6 | export async function POST() {
+   7 |   try {
+>  8 |     const res = await fetch(`${BACKEND}/api/rooms`, { method: "POST" });
+     |                 ^
+   9 |     const body = (await res.json()) as ApiResponse<CreateRoomResponse>;
+  10 |     return NextResponse.json(body, { status: res.status });
+  11 |   } catch (e) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED'
+  }
+}
+ POST /api/rooms 502 in 446ms (compile: 324ms, render: 122ms)
+POST /api/rooms failed: TypeError: fetch failed
+    at async POST (app\api\rooms\route.ts:8:17)
+   6 | export async function POST() {
+   7 |   try {
+>  8 |     const res = await fetch(`${BACKEND}/api/rooms`, { method: "POST" });
+     |                 ^
+   9 |     const body = (await res.json()) as ApiResponse<CreateRoomResponse>;
+  10 |     return NextResponse.json(body, { status: res.status });
+  11 |   } catch (e) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED'
+  }
+}
+ POST /api/rooms 502 in 46ms (compile: 2ms, render: 44ms)
+POST /api/rooms failed: TypeError: fetch failed
+    at async POST (app\api\rooms\route.ts:8:17)
+   6 | export async function POST() {
+   7 |   try {
+>  8 |     const res = await fetch(`${BACKEND}/api/rooms`, { method: "POST" });
+     |                 ^
+   9 |     const body = (await res.json()) as ApiResponse<CreateRoomResponse>;
+  10 |     return NextResponse.json(body, { status: res.status });
+  11 |   } catch (e) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED'
+  }
+}
+ POST /api/rooms 502 in 42ms (compile: 2ms, render: 40ms)
+POST /api/rooms failed: TypeError: fetch failed
+    at async POST (app\api\rooms\route.ts:8:17)
+   6 | export async function POST() {
+   7 |   try {
+>  8 |     const res = await fetch(`${BACKEND}/api/rooms`, { method: "POST" });
+     |                 ^
+   9 |     const body = (await res.json()) as ApiResponse<CreateRoomResponse>;
+  10 |     return NextResponse.json(body, { status: res.status });
+  11 |   } catch (e) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED'
+  }
+}
+ POST /api/rooms 502 in 49ms (compile: 1946µs, render: 47ms)
+POST /api/rooms failed: TypeError: fetch failed
+    at async POST (app\api\rooms\route.ts:8:17)
+   6 | export async function POST() {
+   7 |   try {
+>  8 |     const res = await fetch(`${BACKEND}/api/rooms`, { method: "POST" });
+     |                 ^
+   9 |     const body = (await res.json()) as ApiResponse<CreateRoomResponse>;
+  10 |     return NextResponse.json(body, { status: res.status });
+  11 |   } catch (e) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED'
+  }
+}
+ POST /api/rooms 502 in 73ms (compile: 3ms, render: 69ms)
+POST /api/rooms failed: TypeError: fetch failed
+    at async POST (app\api\rooms\route.ts:8:17)
+   6 | export async function POST() {
+   7 |   try {
+>  8 |     const res = await fetch(`${BACKEND}/api/rooms`, { method: "POST" });
+     |                 ^
+   9 |     const body = (await res.json()) as ApiResponse<CreateRoomResponse>;
+  10 |     return NextResponse.json(body, { status: res.status });
+  11 |   } catch (e) { {
+  [cause]: AggregateError: 
+      at ignore-listed frames {
+    code: 'ECONNREFUSED'
+  }
+}
+ POST /api/rooms 502 in 53ms (compile: 2ms, render: 50ms)
+ GET / 200 in 22ms (compile: 3ms, render: 19ms)
+ GET / 200 in 23ms (compile: 4ms, render: 19ms)
+ GET / 200 in 28ms (compile: 3ms, render: 25ms)
