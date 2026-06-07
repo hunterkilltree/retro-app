@@ -32,11 +32,14 @@ const TIMER_OPTIONS = [
   { label: "15 min", value: 900 },
 ];
 
+const VOTE_OPTIONS = [1, 2, 3, 4, 5, 6];
+
 interface SetupScreenProps {
   roomCode: string;
   sessionToken: string;
   columns: BoardColumn[];
   timerSeconds: number;
+  votesPerUser: number | null | undefined;
   participants: Participant[];
   onStartSession: () => void;
   isStarting: boolean;
@@ -83,6 +86,7 @@ export function SetupScreen({
   sessionToken,
   columns,
   timerSeconds,
+  votesPerUser,
   participants,
   onStartSession,
   isStarting,
@@ -181,6 +185,22 @@ export function SetupScreen({
     }
   }
 
+  // Set votes per participant
+  async function handleVotesChange(votes: number) {
+    try {
+      await fetch(`/api/rooms/${encodeURIComponent(roomCode)}/votes`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Token": sessionToken,
+        },
+        body: JSON.stringify({ votesPerUser: votes }),
+      });
+    } catch {
+      // WS broadcast will sync state; ignore transient errors
+    }
+  }
+
   return (
     <div className={styles.layout}>
       {/* Main area */}
@@ -276,6 +296,30 @@ export function SetupScreen({
             ))}
           </div>
         </div>
+
+        {/* Votes card */}
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>Votes per Participant</div>
+          <div className={styles.timerOptions}>
+            {VOTE_OPTIONS.map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={`${styles.timerBtn} ${
+                  votesPerUser === value ? styles.timerBtnActive : ""
+                }`}
+                onClick={() => handleVotesChange(value)}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+          <div className={styles.voteHint}>
+            {votesPerUser
+              ? `Each person can vote on up to ${votesPerUser} note${votesPerUser !== 1 ? "s" : ""} during review.`
+              : "Required — pick how many notes each person may vote for during review."}
+          </div>
+        </div>
       </div>
 
       {/* Sidebar */}
@@ -285,14 +329,16 @@ export function SetupScreen({
         <button
           type="button"
           className={styles.startBtn}
-          disabled={columns.length === 0 || isStarting}
+          disabled={columns.length === 0 || !votesPerUser || isStarting}
           onClick={onStartSession}
         >
           {isStarting ? "Starting…" : "▶ Start Session"}
         </button>
-        {columns.length === 0 && (
+        {columns.length === 0 ? (
           <div className={styles.startHint}>Add at least one column to start.</div>
-        )}
+        ) : !votesPerUser ? (
+          <div className={styles.startHint}>Set votes per participant to start.</div>
+        ) : null}
       </div>
     </div>
   );

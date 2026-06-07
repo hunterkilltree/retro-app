@@ -23,6 +23,7 @@ public class RoomService {
     private final NoteRepository noteRepository;
     private final NoteGroupRepository noteGroupRepository;
     private final ActionItemRepository actionItemRepository;
+    private final VoteRepository voteRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     public RoomService(
@@ -31,6 +32,7 @@ public class RoomService {
             NoteRepository noteRepository,
             NoteGroupRepository noteGroupRepository,
             ActionItemRepository actionItemRepository,
+            VoteRepository voteRepository,
             SimpMessagingTemplate messagingTemplate
     ) {
         this.participantRepository = participantRepository;
@@ -38,6 +40,7 @@ public class RoomService {
         this.noteRepository = noteRepository;
         this.noteGroupRepository = noteGroupRepository;
         this.actionItemRepository = actionItemRepository;
+        this.voteRepository = voteRepository;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -52,6 +55,7 @@ public class RoomService {
         List<NoteGroup> groups = noteGroupRepository.findSnapshotGroupsByRoom(room);
         List<Note> notes = noteRepository.findSnapshotNotesByRoom(room);
         List<ActionItem> actionItems = actionItemRepository.findByRoomOrderByPosition(room);
+        List<Vote> votes = voteRepository.findSnapshotVotesByRoom(room);
 
         // Compute absolute epoch-ms deadline so clients don't need timezone math
         Long timerEndsAtMs = null;
@@ -69,7 +73,8 @@ public class RoomService {
                         room.getRoomCode(),
                         room.getState(),
                         room.getTimerSeconds(),
-                        timerEndsAtMs
+                        timerEndsAtMs,
+                        room.getVotesPerUser()
                 ),
                 participants.stream()
                         .map(p -> new BoardSnapshotMessage.ParticipantSummary(
@@ -98,6 +103,10 @@ public class RoomService {
                 actionItems.stream()
                         .map(a -> new BoardSnapshotMessage.ActionItem(
                                 a.getId(), a.getContent(), a.getPosition()))
+                        .toList(),
+                votes.stream()
+                        .map(v -> new BoardSnapshotMessage.Vote(
+                                v.getNote().getId(), v.getParticipant().getId()))
                         .toList()
         );
     }
@@ -127,7 +136,14 @@ public class RoomService {
     public BoardState advanceState(Room room) {
         BoardState current = room.getState();
         BoardState next = switch (current) {
-            case SETUP -> BoardState.START;
+            case SETUP -> {
+                // Host must configure votes-per-user before the room can start.
+                if (room.getVotesPerUser() == null || room.getVotesPerUser() < 1) {
+                    throw new InvalidStateTransitionException(
+                            "Votes per participant must be set before starting the room");
+                }
+                yield BoardState.START;
+            }
             case START -> BoardState.REVIEW;
             case REVIEW -> BoardState.DONE;
             case DONE -> throw new InvalidStateTransitionException("Room is already in DONE state");

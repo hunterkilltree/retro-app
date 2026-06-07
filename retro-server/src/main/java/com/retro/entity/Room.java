@@ -37,6 +37,10 @@ public class Room {
     @Column(name = "timer_started_at")
     private LocalDateTime timerStartedAt;
 
+    /** Number of votes each participant gets in REVIEW. null until the host sets it in SETUP. */
+    @Column(name = "votes_per_user")
+    private Integer votesPerUser;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -39,6 +39,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
   const notes        = useRoomStore((s) => s.notes);
   const groups        = useRoomStore((s) => s.groups);
   const actionItems   = useRoomStore((s) => s.actionItems);
+  const votes         = useRoomStore((s) => s.votes);
   const timerEndsAtMs = useRoomStore((s) => s.timerEndsAtMs);
 
   const { status, sendMessage } = useWebSocket(roomCode, sessionToken);
@@ -76,6 +77,10 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
 
   function handleUngroupNote(noteId: string) {
     sendMessage(`/app/room/${roomCode}/ungroupNote`, { noteId });
+  }
+
+  function handleToggleVote(noteId: string) {
+    sendMessage(`/app/room/${roomCode}/toggleVote`, { noteId });
   }
 
   function handleMoveToDone() {
@@ -135,6 +140,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           sessionToken={sessionToken}
           columns={columns}
           timerSeconds={room.timerSeconds}
+          votesPerUser={room.votesPerUser}
           participants={participants}
           onStartSession={handleStartSession}
           isStarting={isStarting}
@@ -164,10 +170,13 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           columns={columns}
           notes={notes}
           groups={groups}
+          votes={votes}
+          votesPerUser={room.votesPerUser ?? 0}
           me={me}
           onGroupNotes={handleGroupNotes}
           onRenameGroup={handleRenameGroup}
           onUngroupNote={handleUngroupNote}
+          onToggleVote={handleToggleVote}
           onMoveToDone={handleMoveToDone}
         />
       )}

@@ -17,7 +17,8 @@ public record BoardSnapshotMessage(
         List<Column> columns,
         List<Note> notes,
         List<Group> groups,
-        List<ActionItem> actionItems
+        List<ActionItem> actionItems,
+        List<Vote> votes
 ) {
     /**
      * Room metadata. Uses timerEndsAtMs (epoch ms) so clients can compute
@@ -28,7 +29,8 @@ public record BoardSnapshotMessage(
             String roomCode,
             BoardState state,
             Integer timerSeconds,
-            Long timerEndsAtMs   // null until state = START and timer is running
+            Long timerEndsAtMs,   // null until state = START and timer is running
+            Integer votesPerUser  // null until the host sets it in SETUP
     ) {}
 
     public record ParticipantSummary(UUID id, String username, String color, ParticipantRole role) {}
@@ -49,4 +51,7 @@ public record BoardSnapshotMessage(
     public record Group(UUID id, UUID columnId, String name, Integer position) {}
 
     public record ActionItem(UUID id, String content, Integer position) {}
+
+    /** One vote cast by a participant on a note (at most one per note per participant). */
+    public record Vote(UUID noteId, UUID participantId) {}
 }

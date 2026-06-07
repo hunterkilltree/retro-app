@@ -14,7 +14,8 @@ public record RoomSnapshotResponse(
         List<Column> columns,
         List<Note> notes,
         List<Group> groups,
-        List<ActionItem> actionItems
+        List<ActionItem> actionItems,
+        List<Vote> votes
 ) {
     public record Participant(
             UUID id,
@@ -28,7 +29,8 @@ public record RoomSnapshotResponse(
             String roomCode,
             BoardState state,
             Integer timerSeconds,
-            LocalDateTime timerStartedAt
+            LocalDateTime timerStartedAt,
+            Integer votesPerUser
     ) {}
 
     public record ParticipantSummary(
@@ -71,6 +73,11 @@ public record RoomSnapshotResponse(
             String content,
             Integer position,
             LocalDateTime createdAt
+    ) {}
+
+    public record Vote(
+            UUID noteId,
+            UUID participantId
     ) {}
 }
 

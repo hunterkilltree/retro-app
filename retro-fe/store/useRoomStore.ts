@@ -12,6 +12,7 @@ import type {
   SnapshotActionItem,
   SnapshotGroup,
   SnapshotNote,
+  Vote,
 } from "@/lib/types";
 
 export interface RoomStore {
@@ -22,6 +23,7 @@ export interface RoomStore {
   notes: SnapshotNote[];
   groups: SnapshotGroup[];
   actionItems: SnapshotActionItem[];
+  votes: Vote[];
   /** Epoch ms when the timer expires. null until session starts. */
   timerEndsAtMs: number | null;
 
@@ -65,6 +67,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
   notes: [],
   groups: [],
   actionItems: [],
+  votes: [],
   timerEndsAtMs: null,
 
   setFullState: (snapshot) =>
@@ -95,6 +98,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
         content: a.content,
         position: a.position,
       })),
+      votes: snapshot.votes ?? [],
       timerEndsAtMs: null, // will be set by next WS snapshot
     }),
 
@@ -106,12 +110,14 @@ export const useRoomStore = create<RoomStore>((set) => ({
         state: snapshot.room.state,
         timerSeconds: snapshot.room.timerSeconds,
         timerStartedAt: null, // not used for display; timerEndsAtMs is used
+        votesPerUser: snapshot.room.votesPerUser,
       },
       participants: snapshot.participants,
       columns: snapshot.columns,
       notes: snapshot.notes,
       groups: snapshot.groups,
       actionItems: snapshot.actionItems,
+      votes: snapshot.votes ?? [],
       timerEndsAtMs: snapshot.room.timerEndsAtMs,
     }),
 
@@ -179,6 +185,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
       notes: [],
       groups: [],
       actionItems: [],
+      votes: [],
       timerEndsAtMs: null,
     }),
 }));

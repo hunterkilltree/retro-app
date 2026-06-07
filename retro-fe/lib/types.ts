@@ -10,6 +10,8 @@ export type Room = {
   state: BoardState;
   timerSeconds: number;
   timerStartedAt?: string | null;
+  /** Votes each participant gets in REVIEW. null until the host sets it in SETUP. */
+  votesPerUser?: number | null;
 };
 export type BoardColumn = { id: string; title: string; color: string; position: number };
 export type Note = {
@@ -26,6 +28,9 @@ export type Note = {
 };
 export type NoteGroup = { id: string; columnId: string; name: string | null; position: number; createdAt: string };
 export type ActionItem = { id: string; content: string; position: number; createdAt: string };
+
+/** One vote cast by a participant on a note (at most one per note per participant). */
+export type Vote = { noteId: string; participantId: string };
 
 export type CreateRoomResponse = {
   id: string;
@@ -52,6 +57,7 @@ export type RoomSnapshotResponse = {
   notes: Note[];
   groups: NoteGroup[];
   actionItems: ActionItem[];
+  votes: Vote[];
 };
 
 export type RoomSnapshot = RoomSnapshotResponse;
@@ -91,11 +97,13 @@ export type BoardSnapshot = {
     state: BoardState;
     timerSeconds: number;
     timerEndsAtMs: number | null;
+    votesPerUser: number | null;
   };
   participants: Participant[];
   columns: BoardColumn[];
   notes: SnapshotNote[];
   groups: SnapshotGroup[];
   actionItems: SnapshotActionItem[];
+  votes: Vote[];
 };
 

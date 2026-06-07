@@ -198,6 +198,13 @@
   color: #fff !important;
 }
 
+.voteHint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 12px;
+  line-height: 1.4;
+}
+
 /* Start session button */
 .startBtn {
   width: 100%;

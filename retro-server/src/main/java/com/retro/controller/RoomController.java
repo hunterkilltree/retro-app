@@ -7,6 +7,7 @@ import com.retro.dto.JoinRoomRequest;
 import com.retro.dto.JoinRoomResponse;
 import com.retro.dto.RoomSnapshotResponse;
 import com.retro.dto.SetTimerRequest;
+import com.retro.dto.SetVotesRequest;
 import com.retro.dto.UpdateColumnRequest;
 import com.retro.service.PdfExportService;
 import com.retro.service.RoomService;
@@ -16,6 +17,7 @@ import com.retro.entity.BoardColumn;
 import com.retro.entity.Note;
 import com.retro.entity.NoteGroup;
 import com.retro.entity.Room;
+import com.retro.entity.Vote;
 import com.retro.entity.enums.BoardState;
 import com.retro.entity.enums.ParticipantRole;
 import com.retro.exception.RoomNotFoundException;
@@ -26,6 +28,7 @@ import com.retro.repository.NoteGroupRepository;
 import com.retro.repository.NoteRepository;
 import com.retro.repository.RoomRepository;
 import com.retro.repository.ParticipantRepository;
+import com.retro.repository.VoteRepository;
 import com.retro.util.RoomCodeGenerator;
 import com.retro.ws.ParticipantJoinedData;
 import com.retro.ws.RoomEvent;
@@ -62,6 +65,7 @@ public class RoomController {
     private final NoteRepository noteRepository;
     private final NoteGroupRepository noteGroupRepository;
     private final ActionItemRepository actionItemRepository;
+    private final VoteRepository voteRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final RoomService roomService;
     private final PdfExportService pdfExportService;
@@ -73,6 +77,7 @@ public class RoomController {
             NoteRepository noteRepository,
             NoteGroupRepository noteGroupRepository,
             ActionItemRepository actionItemRepository,
+            VoteRepository voteRepository,
             SimpMessagingTemplate messagingTemplate,
             RoomService roomService,
             PdfExportService pdfExportService
@@ -83,6 +88,7 @@ public class RoomController {
         this.noteRepository = noteRepository;
         this.noteGroupRepository = noteGroupRepository;
         this.actionItemRepository = actionItemRepository;
+        this.voteRepository = voteRepository;
         this.messagingTemplate = messagingTemplate;
         this.roomService = roomService;
         this.pdfExportService = pdfExportService;
@@ -184,10 +190,11 @@ public class RoomController {
         List<NoteGroup> groups = noteGroupRepository.findSnapshotGroupsByRoom(room);
         List<Note> notes = noteRepository.findSnapshotNotesByRoom(room);
         List<ActionItem> actionItems = actionItemRepository.findByRoomOrderByPosition(room);
+        List<Vote> votes = voteRepository.findSnapshotVotesByRoom(room);
 
         RoomSnapshotResponse payload = new RoomSnapshotResponse(
                 new RoomSnapshotResponse.Participant(me.getId(), me.getUsername(), me.getColor(), me.getRole()),
-                new RoomSnapshotResponse.Room(room.getId(), room.getRoomCode(), room.getState(), room.getTimerSeconds(), room.getTimerStartedAt()),
+                new RoomSnapshotResponse.Room(room.getId(), room.getRoomCode(), room.getState(), room.getTimerSeconds(), room.getTimerStartedAt(), room.getVotesPerUser()),
                 participants.stream()
                         .map(p -> new RoomSnapshotResponse.ParticipantSummary(p.getId(), p.getUsername(), p.getColor(), p.getRole()))
                         .toList(),
@@ -219,6 +226,9 @@ public class RoomController {
                         .toList(),
                 actionItems.stream()
                         .map(a -> new RoomSnapshotResponse.ActionItem(a.getId(), a.getContent(), a.getPosition(), a.getCreatedAt()))
+                        .toList(),
+                votes.stream()
+                        .map(v -> new RoomSnapshotResponse.Vote(v.getNote().getId(), v.getParticipant().getId()))
                         .toList()
         );
 
@@ -369,6 +379,43 @@ public class RoomController {
         }
 
         room.setTimerSeconds(body.timerSeconds());
+        roomRepository.save(room);
+        roomService.broadcastSnapshot(room);
+
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // ─────────────────────────────────────────────
+    //  Votes-per-participant config (admin only, SETUP state)
+    // ─────────────────────────────────────────────
+
+    @PatchMapping("/{roomCode}/votes")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> setVotes(
+            @PathVariable String roomCode,
+            @RequestHeader("X-Session-Token") String sessionToken,
+            @Valid @RequestBody SetVotesRequest body
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .filter(p -> p.getRole() == com.retro.entity.enums.ParticipantRole.ADMIN)
+                .orElseThrow(() -> new UnauthorizedException("Only admin can set the vote limit"));
+
+        // Votes per participant may only be configured before the session starts.
+        if (room.getState() != BoardState.SETUP) {
+            throw new IllegalArgumentException("Vote limit can only be set during setup");
+        }
+
+        Integer votes = body.votesPerUser();
+        if (votes == null || votes < 1 || votes > 12) {
+            throw new IllegalArgumentException("Votes per participant must be between 1 and 12");
+        }
+
+        room.setVotesPerUser(votes);
         roomRepository.save(room);
         roomService.broadcastSnapshot(room);
 

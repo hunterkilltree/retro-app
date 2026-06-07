@@ -8,6 +8,7 @@ import com.retro.entity.Room;
 import com.retro.entity.enums.BoardState;
 import com.retro.entity.enums.ParticipantRole;
 import com.retro.entity.ActionItem;
+import com.retro.entity.Vote;
 import com.retro.repository.ActionItemRepository;
 import com.retro.repository.NoteGroupRepository;
 import com.retro.exception.InvalidStateTransitionException;
@@ -17,6 +18,7 @@ import com.retro.repository.BoardColumnRepository;
 import com.retro.repository.NoteRepository;
 import com.retro.repository.ParticipantRepository;
 import com.retro.repository.RoomRepository;
+import com.retro.repository.VoteRepository;
 import com.retro.service.RoomService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ public class RoomWsController {
     private final NoteRepository noteRepository;
     private final NoteGroupRepository noteGroupRepository;
     private final ActionItemRepository actionItemRepository;
+    private final VoteRepository voteRepository;
     private final WebSocketSessionRegistry registry;
     private final RoomService roomService;
 
@@ -52,6 +55,7 @@ public class RoomWsController {
             NoteRepository noteRepository,
             NoteGroupRepository noteGroupRepository,
             ActionItemRepository actionItemRepository,
+            VoteRepository voteRepository,
             WebSocketSessionRegistry registry,
             RoomService roomService
     ) {
@@ -61,6 +65,7 @@ public class RoomWsController {
         this.noteRepository = noteRepository;
         this.noteGroupRepository = noteGroupRepository;
         this.actionItemRepository = actionItemRepository;
+        this.voteRepository = voteRepository;
         this.registry = registry;
         this.roomService = roomService;
     }
@@ -351,6 +356,58 @@ public class RoomWsController {
                 noteRepository.save(last);
             }
             noteGroupRepository.delete(group);
+        }
+
+        roomService.broadcastSnapshot(room);
+    }
+
+    // ─── Voting (REVIEW state) ────────────────────────────────────────────────
+
+    record ToggleVotePayload(String noteId) {}
+
+    /**
+     * Any participant toggles their vote on a note (state must be REVIEW).
+     * At most one vote per participant per note. If the participant has already
+     * voted on the note, the vote is removed; otherwise a new vote is added —
+     * provided they still have votes left in their per-room budget.
+     */
+    @MessageMapping("/room/{roomCode}/toggleVote")
+    @Transactional
+    public void toggleVote(
+            @DestinationVariable String roomCode,
+            @Payload ToggleVotePayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (room.getState() != BoardState.REVIEW) {
+            log.warn("toggleVote rejected — room {} is in state {}", room.getRoomCode(), room.getState());
+            return;
+        }
+
+        Note note = noteRepository.findById(UUID.fromString(payload.noteId()))
+                .filter(n -> n.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Note not found"));
+
+        var existing = voteRepository.findByNoteAndParticipant(note, p);
+        if (existing.isPresent()) {
+            // Toggle off
+            voteRepository.delete(existing.get());
+        } else {
+            // Toggle on — enforce the per-participant budget
+            int budget = room.getVotesPerUser() == null ? 0 : room.getVotesPerUser();
+            long used = voteRepository.countByRoomAndParticipant(room, p);
+            if (used >= budget) {
+                log.warn("toggleVote rejected — participant {} out of votes ({}/{})",
+                        p.getId(), used, budget);
+                return;
+            }
+            Vote vote = new Vote();
+            vote.setRoom(room);
+            vote.setNote(note);
+            vote.setParticipant(p);
+            voteRepository.save(vote);
         }
 
         roomService.broadcastSnapshot(room);
