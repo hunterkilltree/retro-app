@@ -193,6 +193,11 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           sessionToken={sessionToken}
           onAddActionItem={handleAddActionItem}
           onDeleteActionItem={handleDeleteActionItem}
+          onRoomDeleted={() => {
+            localStorage.removeItem(LS_TOKEN_KEY);
+            localStorage.removeItem(LS_ROOM_KEY);
+            router.push("/");
+          }}
         />
       )}
     </div>

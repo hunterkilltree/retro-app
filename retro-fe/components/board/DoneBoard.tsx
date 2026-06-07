@@ -3,6 +3,7 @@
 import { useState } from "react";
 import styles from "./DoneBoard.module.css";
 import type { BoardColumn, Participant, SnapshotActionItem, SnapshotGroup, SnapshotNote } from "@/lib/types";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface DoneBoardProps {
   columns: BoardColumn[];
@@ -14,6 +15,7 @@ interface DoneBoardProps {
   sessionToken: string;
   onAddActionItem: (content: string) => void;
   onDeleteActionItem: (id: string) => void;
+  onRoomDeleted?: () => void;
 }
 
 export function DoneBoard({
@@ -26,10 +28,30 @@ export function DoneBoard({
   sessionToken,
   onAddActionItem,
   onDeleteActionItem,
+  onRoomDeleted,
 }: DoneBoardProps) {
   const isAdmin = me.role === "ADMIN";
   const [draft, setDraft] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteRoom() {
+    setDeleting(true);
+    try {
+      await fetch(`/api/rooms/${encodeURIComponent(roomCode)}`, {
+        method: "DELETE",
+        headers: { "X-Session-Token": sessionToken },
+      });
+      // WS broadcasts ROOM_CLOSED to redirect everyone; this is a local fallback.
+      onRoomDeleted?.();
+    } catch {
+      // best-effort — the WS broadcast handles redirect for all clients
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  }
 
   async function handleExport() {
     setExporting(true);
@@ -119,14 +141,25 @@ export function DoneBoard({
           <div className={styles.sectionTitle} style={{ borderBottom: "none", padding: "18px 24px 10px" }}>
             Action Items
           </div>
-          <button
-            className={styles.exportBtn}
-            onClick={handleExport}
-            disabled={exporting}
-            title="Download PDF summary"
-          >
-            {exporting ? "Exporting…" : "⬇ Export PDF"}
-          </button>
+          <div className={styles.headerActions}>
+            <button
+              className={styles.exportBtn}
+              onClick={handleExport}
+              disabled={exporting}
+              title="Download PDF summary"
+            >
+              {exporting ? "Exporting…" : "⬇ Export PDF"}
+            </button>
+            {isAdmin && (
+              <button
+                className={styles.deleteRoomBtn}
+                onClick={() => setShowDeleteDialog(true)}
+                title="Delete room and all data"
+              >
+                🗑 Delete Room
+              </button>
+            )}
+          </div>
         </div>
 
         <div className={styles.actionList}>
@@ -174,6 +207,19 @@ export function DoneBoard({
           </div>
         )}
       </div>
+
+      {/* Delete-room confirmation */}
+      {showDeleteDialog && (
+        <ConfirmDialog
+          title="Delete Room"
+          message="Are you sure you want to delete this retrospective? This will permanently remove all notes, groups, votes, and action items and disconnect all participants."
+          confirmLabel={deleting ? "Deleting…" : "Yes, delete"}
+          cancelLabel="Cancel"
+          dangerous
+          onConfirm={handleDeleteRoom}
+          onCancel={() => setShowDeleteDialog(false)}
+        />
+      )}
     </div>
   );
 }

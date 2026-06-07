@@ -160,6 +160,34 @@ html[data-mode="dark"] .group {
   padding-right: 24px;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.deleteRoomBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #d9534f;
+  background: none;
+  color: #d9534f;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.deleteRoomBtn:hover {
+  background: #d9534f;
+  color: #fff;
+}
+
 .exportBtn {
   height: 34px;
   padding: 0 16px;

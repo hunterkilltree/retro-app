@@ -88,7 +88,7 @@ public class PdfExportService {
         doc.add(new Paragraph(title)
                 .setFont(bold).setFontSize(20).setFontColor(ACCENT)
                 .setMarginBottom(4));
-        doc.add(new Paragraph("Retrospective · Room " + room.getRoomCode() + " · " + LocalDate.now())
+        doc.add(new Paragraph("Retrospective · " + LocalDate.now())
                 .setFontSize(10).setFontColor(MUTED).setMarginBottom(12));
 
         // ── Participants header (host + everyone who joined) ─────────────────────
