@@ -5,6 +5,7 @@ import {
   startSession,
   moveToReview,
   moveToDone,
+  cleanupRoom,
 } from "./helpers";
 
 test.describe("delete room", () => {
@@ -37,7 +38,7 @@ test.describe("delete room", () => {
   });
 
   test("guest never sees a Delete Room button", async ({ browser }) => {
-    const { adminCtx, guestCtx, admin, guest } = await bootstrapAdminAndGuest(browser);
+    const { adminCtx, guestCtx, admin, guest, roomCode } = await bootstrapAdminAndGuest(browser);
     try {
       await configureSetup(admin, { title: "Sprint.06.2026", columns: ["Keep"], votes: 2 });
       await startSession(admin);
@@ -48,6 +49,7 @@ test.describe("delete room", () => {
       // Delete is admin-only — the guest has no such control anywhere.
       await expect(guest.getByRole("button", { name: "Delete Room" })).toHaveCount(0);
     } finally {
+      await cleanupRoom(admin, roomCode);
       await adminCtx.close();
       await guestCtx.close();
     }

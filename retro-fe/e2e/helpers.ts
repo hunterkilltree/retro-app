@@ -122,6 +122,24 @@ export async function bootstrapAdminAndGuest(
   return { adminCtx, guestCtx, admin, guest, roomCode };
 }
 
+/**
+ * Best-effort cleanup: delete the room via the API using the admin's stored
+ * session token. Safe to call even if the room was already deleted (ignores
+ * errors). Important when running against a shared/production environment so
+ * test rooms don't accumulate.
+ */
+export async function cleanupRoom(page: Page, roomCode: string): Promise<void> {
+  try {
+    const token = await page.evaluate(() => localStorage.getItem("session_token"));
+    if (!token) return;
+    await page.request.delete(`/api/rooms/${encodeURIComponent(roomCode)}`, {
+      headers: { "X-Session-Token": token },
+    });
+  } catch {
+    // best effort — nothing to do if the page is already navigated away/closed
+  }
+}
+
 /** Solo admin: create, join, configure, and start — leaving the room in START. */
 export async function bootstrapSoloAdminInStart(
   page: Page,

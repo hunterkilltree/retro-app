@@ -50,6 +50,39 @@ Point the tests at a different URL with `PLAYWRIGHT_BASE_URL`
 PLAYWRIGHT_BASE_URL=http://localhost:3000 npm run test:e2e
 ```
 
+## Running against a deployed / production environment
+
+The same suite can run against the live app. When `PLAYWRIGHT_BASE_URL` points at
+a non-localhost URL, the config **does not** start a local dev server — it just
+hits the deployed app (which serves its own frontend, backend, and database).
+
+```bash
+PLAYWRIGHT_BASE_URL=https://retro-frontend.onrender.com npm run test:e2e
+```
+
+You still need browsers installed locally (`npx playwright install chromium`).
+Nothing else needs to run on your machine.
+
+**Read this before pointing at production:**
+
+- **These tests write real data.** Each test creates a real room (and notes,
+  votes, action items) through the public API. Every spec now deletes its own
+  room in a `finally` block via `cleanupRoom()`, so a clean run leaves nothing
+  behind — but a hard crash mid-test could orphan a room.
+- **`delete-room.spec.ts` is destructive by design.** It only ever deletes rooms
+  it created itself, so it won't touch anyone else's data — but be aware it
+  exercises the real DELETE endpoint against the live backend.
+- **No auth = no isolation.** There's no login, so test rooms live in the same
+  space as real ones. Prefer a dedicated **staging** environment over true
+  production where possible.
+- **Cold starts.** Free-tier hosts (e.g. Render) sleep when idle; the first
+  request can take 30–60s. The config already raises timeouts for remote targets,
+  but the very first test may still be slow while the service wakes.
+- **Run serially if you want to be gentle.** Add `--workers=1` to avoid creating
+  several rooms at once: `... npm run test:e2e -- --workers=1`.
+- **Don't run as part of every CI push against prod.** Use local/staging for the
+  routine suite; treat production runs as occasional smoke checks.
+
 ## Layout
 
 | File | What it covers |

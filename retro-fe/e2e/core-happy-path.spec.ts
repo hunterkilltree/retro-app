@@ -6,11 +6,12 @@ import {
   addNote,
   moveToReview,
   moveToDone,
+  cleanupRoom,
 } from "./helpers";
 
 test.describe("core happy path (admin + guest, real-time)", () => {
   test("runs a full retro from setup through to Done with live sync", async ({ browser }) => {
-    const { adminCtx, guestCtx, admin, guest } = await bootstrapAdminAndGuest(browser);
+    const { adminCtx, guestCtx, admin, guest, roomCode } = await bootstrapAdminAndGuest(browser);
 
     try {
       // ── Lobby: admin sees both participants ──
@@ -57,13 +58,14 @@ test.describe("core happy path (admin + guest, real-time)", () => {
       await expect(admin.getByText("Great teamwork this sprint")).toBeVisible();
       await expect(guest.getByText("Great teamwork this sprint")).toBeVisible();
     } finally {
+      await cleanupRoom(admin, roomCode);
       await adminCtx.close();
       await guestCtx.close();
     }
   });
 
   test("guest waits during setup and cannot start the session", async ({ browser }) => {
-    const { adminCtx, guestCtx, admin, guest } = await bootstrapAdminAndGuest(browser);
+    const { adminCtx, guestCtx, admin, guest, roomCode } = await bootstrapAdminAndGuest(browser);
     try {
       // Guest sees the waiting screen and has no Start control.
       await expect(guest.getByText("Waiting for admin to start")).toBeVisible();
@@ -74,6 +76,7 @@ test.describe("core happy path (admin + guest, real-time)", () => {
       await configureSetup(admin, { title: "Sprint.06.2026", columns: ["Keep"], votes: 2 });
       await expect(admin.getByRole("button", { name: "Start Session" })).toBeEnabled();
     } finally {
+      await cleanupRoom(admin, roomCode);
       await adminCtx.close();
       await guestCtx.close();
     }
