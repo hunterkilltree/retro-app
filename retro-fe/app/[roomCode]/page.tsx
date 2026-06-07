@@ -138,6 +138,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
         <SetupScreen
           roomCode={roomCode}
           sessionToken={sessionToken}
+          title={room.title}
           columns={columns}
           timerSeconds={room.timerSeconds}
           votesPerUser={room.votesPerUser}

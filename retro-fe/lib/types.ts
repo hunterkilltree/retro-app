@@ -7,6 +7,8 @@ export type Participant = { id: string; username: string; color: string; role: P
 export type Room = {
   id: string;
   roomCode: string;
+  /** Retrospective title (e.g. "Sprint.06.2026"). null until the host sets it in SETUP. */
+  title?: string | null;
   state: BoardState;
   timerSeconds: number;
   timerStartedAt?: string | null;
@@ -94,6 +96,7 @@ export type BoardSnapshot = {
   room: {
     id: string;
     roomCode: string;
+    title: string | null;
     state: BoardState;
     timerSeconds: number;
     timerEndsAtMs: number | null;

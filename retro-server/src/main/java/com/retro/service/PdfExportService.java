@@ -19,11 +19,14 @@ import com.retro.entity.ActionItem;
 import com.retro.entity.BoardColumn;
 import com.retro.entity.Note;
 import com.retro.entity.NoteGroup;
+import com.retro.entity.Participant;
 import com.retro.entity.Room;
+import com.retro.entity.enums.ParticipantRole;
 import com.retro.repository.ActionItemRepository;
 import com.retro.repository.BoardColumnRepository;
 import com.retro.repository.NoteGroupRepository;
 import com.retro.repository.NoteRepository;
+import com.retro.repository.ParticipantRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,25 +47,29 @@ public class PdfExportService {
     private final NoteRepository noteRepository;
     private final NoteGroupRepository noteGroupRepository;
     private final ActionItemRepository actionItemRepository;
+    private final ParticipantRepository participantRepository;
 
     public PdfExportService(
             BoardColumnRepository boardColumnRepository,
             NoteRepository noteRepository,
             NoteGroupRepository noteGroupRepository,
-            ActionItemRepository actionItemRepository
+            ActionItemRepository actionItemRepository,
+            ParticipantRepository participantRepository
     ) {
         this.boardColumnRepository = boardColumnRepository;
         this.noteRepository = noteRepository;
         this.noteGroupRepository = noteGroupRepository;
         this.actionItemRepository = actionItemRepository;
+        this.participantRepository = participantRepository;
     }
 
     @Transactional(readOnly = true)
     public byte[] export(Room room) throws IOException {
-        List<BoardColumn> columns = boardColumnRepository.findByRoomOrderByPosition(room);
-        List<Note>        notes   = noteRepository.findSnapshotNotesByRoom(room);
-        List<NoteGroup>   groups  = noteGroupRepository.findSnapshotGroupsByRoom(room);
-        List<ActionItem>  actions = actionItemRepository.findByRoomOrderByPosition(room);
+        List<BoardColumn>  columns      = boardColumnRepository.findByRoomOrderByPosition(room);
+        List<Note>         notes        = noteRepository.findSnapshotNotesByRoom(room);
+        List<NoteGroup>    groups       = noteGroupRepository.findSnapshotGroupsByRoom(room);
+        List<ActionItem>   actions      = actionItemRepository.findByRoomOrderByPosition(room);
+        List<Participant>  participants = participantRepository.findByRoom(room);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -75,11 +82,45 @@ public class PdfExportService {
         doc.setFont(normal);
 
         // ── Title ──────────────────────────────────────────────────────────────
-        doc.add(new Paragraph("Retrospective — " + room.getRoomCode())
+        String title = (room.getTitle() != null && !room.getTitle().isBlank())
+                ? room.getTitle()
+                : "Retrospective";
+        doc.add(new Paragraph(title)
                 .setFont(bold).setFontSize(20).setFontColor(ACCENT)
                 .setMarginBottom(4));
-        doc.add(new Paragraph(LocalDate.now().toString())
-                .setFontSize(10).setFontColor(MUTED).setMarginBottom(20));
+        doc.add(new Paragraph("Retrospective · Room " + room.getRoomCode() + " · " + LocalDate.now())
+                .setFontSize(10).setFontColor(MUTED).setMarginBottom(12));
+
+        // ── Participants header (host + everyone who joined) ─────────────────────
+        Participant host = participants.stream()
+                .filter(p -> p.getRole() == ParticipantRole.ADMIN)
+                .findFirst()
+                .orElse(null);
+        List<Participant> guests = participants.stream()
+                .filter(p -> p.getRole() != ParticipantRole.ADMIN)
+                .collect(Collectors.toList());
+
+        Paragraph hostLine = new Paragraph()
+                .setFontSize(9.5f).setMarginBottom(2);
+        hostLine.add(new com.itextpdf.layout.element.Text("Host:  ")
+                .setFont(bold).setFontColor(ACCENT));
+        hostLine.add(new com.itextpdf.layout.element.Text(host != null ? host.getUsername() : "—")
+                .setFont(normal).setFontColor(ColorConstants.DARK_GRAY));
+        doc.add(hostLine);
+
+        Paragraph joinedLine = new Paragraph()
+                .setFontSize(9.5f).setMarginBottom(2);
+        joinedLine.add(new com.itextpdf.layout.element.Text("Joined:  ")
+                .setFont(bold).setFontColor(ACCENT));
+        String joinedNames = guests.isEmpty()
+                ? "—"
+                : guests.stream().map(Participant::getUsername).collect(Collectors.joining(", "));
+        joinedLine.add(new com.itextpdf.layout.element.Text(joinedNames)
+                .setFont(normal).setFontColor(ColorConstants.DARK_GRAY));
+        doc.add(joinedLine);
+
+        doc.add(new Paragraph(participants.size() + " participant" + (participants.size() == 1 ? "" : "s") + " total")
+                .setFontSize(8).setFontColor(MUTED).setMarginBottom(20).setMarginTop(2));
 
         // ── Columns ────────────────────────────────────────────────────────────
         for (BoardColumn col : columns) {

@@ -7,6 +7,7 @@ import com.retro.dto.JoinRoomRequest;
 import com.retro.dto.JoinRoomResponse;
 import com.retro.dto.RoomSnapshotResponse;
 import com.retro.dto.SetTimerRequest;
+import com.retro.dto.SetTitleRequest;
 import com.retro.dto.SetVotesRequest;
 import com.retro.dto.UpdateColumnRequest;
 import com.retro.service.PdfExportService;
@@ -194,7 +195,7 @@ public class RoomController {
 
         RoomSnapshotResponse payload = new RoomSnapshotResponse(
                 new RoomSnapshotResponse.Participant(me.getId(), me.getUsername(), me.getColor(), me.getRole()),
-                new RoomSnapshotResponse.Room(room.getId(), room.getRoomCode(), room.getState(), room.getTimerSeconds(), room.getTimerStartedAt(), room.getVotesPerUser()),
+                new RoomSnapshotResponse.Room(room.getId(), room.getRoomCode(), room.getTitle(), room.getState(), room.getTimerSeconds(), room.getTimerStartedAt(), room.getVotesPerUser()),
                 participants.stream()
                         .map(p -> new RoomSnapshotResponse.ParticipantSummary(p.getId(), p.getUsername(), p.getColor(), p.getRole()))
                         .toList(),
@@ -379,6 +380,46 @@ public class RoomController {
         }
 
         room.setTimerSeconds(body.timerSeconds());
+        roomRepository.save(room);
+        roomService.broadcastSnapshot(room);
+
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // ─────────────────────────────────────────────
+    //  Retrospective title (admin only, SETUP state)
+    // ─────────────────────────────────────────────
+
+    @PatchMapping("/{roomCode}/title")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> setTitle(
+            @PathVariable String roomCode,
+            @RequestHeader("X-Session-Token") String sessionToken,
+            @Valid @RequestBody SetTitleRequest body
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .filter(p -> p.getRole() == com.retro.entity.enums.ParticipantRole.ADMIN)
+                .orElseThrow(() -> new UnauthorizedException("Only admin can set the title"));
+
+        // Title may only be configured before the session starts.
+        if (room.getState() != BoardState.SETUP) {
+            throw new IllegalArgumentException("Title can only be set during setup");
+        }
+
+        String title = body.title() == null ? "" : body.title().strip();
+        if (title.isBlank()) {
+            throw new IllegalArgumentException("Title must not be blank");
+        }
+        if (title.length() > 120) {
+            title = title.substring(0, 120);
+        }
+
+        room.setTitle(title);
         roomRepository.save(room);
         roomService.broadcastSnapshot(room);
 

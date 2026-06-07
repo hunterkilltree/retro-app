@@ -9,6 +9,7 @@ import com.retro.repository.BoardColumnRepository;
 import com.retro.repository.NoteGroupRepository;
 import com.retro.repository.NoteRepository;
 import com.retro.repository.ParticipantRepository;
+import com.retro.repository.VoteRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,7 @@ class RoomServiceTest {
     @Mock private NoteRepository noteRepository;
     @Mock private NoteGroupRepository noteGroupRepository;
     @Mock private ActionItemRepository actionItemRepository;
+    @Mock private VoteRepository voteRepository;
     @Mock private SimpMessagingTemplate messagingTemplate;
 
     private RoomService roomService;
@@ -49,6 +51,7 @@ class RoomServiceTest {
                 noteRepository,
                 noteGroupRepository,
                 actionItemRepository,
+                voteRepository,
                 messagingTemplate
         );
     }
@@ -67,6 +70,9 @@ class RoomServiceTest {
     @Test
     void advanceFromSetupGoesToStartAndStartsTimer() {
         Room room = roomInState(BoardState.SETUP);
+        // Host must have named the retro and set a vote budget before starting.
+        room.setTitle("Sprint.06.2026");
+        room.setVotesPerUser(3);
 
         BoardState next = roomService.advanceState(room);
 
@@ -75,6 +81,16 @@ class RoomServiceTest {
         assertThat(room.getTimerStartedAt())
                 .as("entering START must stamp the timer start time")
                 .isNotNull();
+    }
+
+    @Test
+    void advanceFromSetupIsRejectedWithoutTitleOrVotes() {
+        Room room = roomInState(BoardState.SETUP);
+
+        assertThatThrownBy(() -> roomService.advanceState(room))
+                .isInstanceOf(InvalidStateTransitionException.class);
+
+        assertThat(room.getState()).isEqualTo(BoardState.SETUP);
     }
 
     @Test
@@ -167,5 +183,6 @@ class RoomServiceTest {
         when(noteGroupRepository.findSnapshotGroupsByRoom(room)).thenReturn(List.of());
         when(noteRepository.findSnapshotNotesByRoom(room)).thenReturn(List.of());
         when(actionItemRepository.findByRoomOrderByPosition(room)).thenReturn(List.of());
+        when(voteRepository.findSnapshotVotesByRoom(room)).thenReturn(List.of());
     }
 }

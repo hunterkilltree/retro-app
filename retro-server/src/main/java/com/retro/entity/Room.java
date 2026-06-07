@@ -26,6 +26,10 @@ public class Room {
     @Column(name = "room_code", nullable = false, unique = true, length = 12)
     private String roomCode;
 
+    /** Retrospective title (e.g. "Sprint.06.2026"). null until the host sets it in SETUP. */
+    @Column(name = "title", length = 120)
+    private String title;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "state", nullable = false)

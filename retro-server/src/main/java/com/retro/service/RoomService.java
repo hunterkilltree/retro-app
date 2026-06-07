@@ -71,6 +71,7 @@ public class RoomService {
                 new BoardSnapshotMessage.Room(
                         room.getId(),
                         room.getRoomCode(),
+                        room.getTitle(),
                         room.getState(),
                         room.getTimerSeconds(),
                         timerEndsAtMs,
@@ -137,6 +138,11 @@ public class RoomService {
         BoardState current = room.getState();
         BoardState next = switch (current) {
             case SETUP -> {
+                // Host must name the retrospective before the room can start.
+                if (room.getTitle() == null || room.getTitle().isBlank()) {
+                    throw new InvalidStateTransitionException(
+                            "A retrospective title must be set before starting the room");
+                }
                 // Host must configure votes-per-user before the room can start.
                 if (room.getVotesPerUser() == null || room.getVotesPerUser() < 1) {
                     throw new InvalidStateTransitionException(

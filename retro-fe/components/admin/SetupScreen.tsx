@@ -37,6 +37,7 @@ const VOTE_OPTIONS = [1, 2, 3, 4, 5, 6];
 interface SetupScreenProps {
   roomCode: string;
   sessionToken: string;
+  title: string | null | undefined;
   columns: BoardColumn[];
   timerSeconds: number;
   votesPerUser: number | null | undefined;
@@ -84,6 +85,7 @@ function SortableColumnItem({
 export function SetupScreen({
   roomCode,
   sessionToken,
+  title,
   columns,
   timerSeconds,
   votesPerUser,
@@ -95,6 +97,7 @@ export function SetupScreen({
   const [newColor, setNewColor] = useState(COLUMN_COLORS[0]);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState(title ?? "");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -185,6 +188,24 @@ export function SetupScreen({
     }
   }
 
+  // Save retrospective title
+  async function handleTitleSave() {
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === (title ?? "")) return;
+    try {
+      await fetch(`/api/rooms/${encodeURIComponent(roomCode)}/title`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Token": sessionToken,
+        },
+        body: JSON.stringify({ title: trimmed }),
+      });
+    } catch {
+      // WS broadcast will sync state; ignore transient errors
+    }
+  }
+
   // Set votes per participant
   async function handleVotesChange(votes: number) {
     try {
@@ -205,6 +226,31 @@ export function SetupScreen({
     <div className={styles.layout}>
       {/* Main area */}
       <div className={styles.main}>
+        {/* Title card */}
+        <div className={styles.card}>
+          <div className={styles.cardTitle}>Retrospective Title</div>
+          <input
+            className={styles.titleInput}
+            style={{ width: "100%" }}
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            onBlur={handleTitleSave}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleTitleSave();
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            placeholder="e.g. Sprint.06.2026"
+            maxLength={120}
+          />
+          <div className={styles.voteHint}>
+            {title
+              ? "This name is shown as the heading of the exported PDF."
+              : "Required — name this retrospective (e.g. Sprint.06.2026)."}
+          </div>
+        </div>
+
         {/* Columns card */}
         <div className={styles.card}>
           <div className={styles.cardTitle}>Board Columns</div>
@@ -329,12 +375,14 @@ export function SetupScreen({
         <button
           type="button"
           className={styles.startBtn}
-          disabled={columns.length === 0 || !votesPerUser || isStarting}
+          disabled={!title || columns.length === 0 || !votesPerUser || isStarting}
           onClick={onStartSession}
         >
           {isStarting ? "Starting…" : "▶ Start Session"}
         </button>
-        {columns.length === 0 ? (
+        {!title ? (
+          <div className={styles.startHint}>Add a retrospective title to start.</div>
+        ) : columns.length === 0 ? (
           <div className={styles.startHint}>Add at least one column to start.</div>
         ) : !votesPerUser ? (
           <div className={styles.startHint}>Set votes per participant to start.</div>

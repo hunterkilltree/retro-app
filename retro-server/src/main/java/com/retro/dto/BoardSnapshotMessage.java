@@ -27,6 +27,7 @@ public record BoardSnapshotMessage(
     public record Room(
             UUID id,
             String roomCode,
+            String title,         // null until the host sets it in SETUP
             BoardState state,
             Integer timerSeconds,
             Long timerEndsAtMs,   // null until state = START and timer is running

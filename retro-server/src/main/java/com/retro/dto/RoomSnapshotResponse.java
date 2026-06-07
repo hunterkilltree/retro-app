@@ -27,6 +27,7 @@ public record RoomSnapshotResponse(
     public record Room(
             UUID id,
             String roomCode,
+            String title,
             BoardState state,
             Integer timerSeconds,
             LocalDateTime timerStartedAt,

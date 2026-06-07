@@ -107,6 +107,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
       room: {
         id: snapshot.room.id,
         roomCode: snapshot.room.roomCode,
+        title: snapshot.room.title,
         state: snapshot.room.state,
         timerSeconds: snapshot.room.timerSeconds,
         timerStartedAt: null, // not used for display; timerEndsAtMs is used
