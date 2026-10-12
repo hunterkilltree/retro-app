@@ -75,6 +75,20 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
     sendMessage(`/app/room/${roomCode}/renameGroup`, { groupId, name });
   }
 
+  // Asks the backend (Gemini) for a ≤ 3-word group title. Read-only — the admin
+  // applies it via renameGroup after reviewing it.
+  async function handleSuggestGroupTitle(groupId: string): Promise<string> {
+    const res = await fetch(
+      `/api/rooms/${encodeURIComponent(roomCode)}/groups/${encodeURIComponent(groupId)}/suggest-title`,
+      { method: "POST", headers: { "X-Session-Token": sessionToken } }
+    );
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.data?.title) {
+      throw new Error(json?.error ??"Could not get a suggestion");
+    }
+    return json.data.title as string;
+  }
+
   function handleUngroupNote(noteId: string) {
     sendMessage(`/app/room/${roomCode}/ungroupNote`, { noteId });
   }
@@ -188,6 +202,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           me={me}
           onGroupNotes={handleGroupNotes}
           onRenameGroup={handleRenameGroup}
+          onSuggestGroupTitle={handleSuggestGroupTitle}
           onUngroupNote={handleUngroupNote}
           onToggleVote={handleToggleVote}
           onMoveToDone={handleMoveToDone}
