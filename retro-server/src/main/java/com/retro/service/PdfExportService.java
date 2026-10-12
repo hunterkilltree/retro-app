@@ -69,7 +69,7 @@ public class PdfExportService {
         List<Note>         notes        = noteRepository.findSnapshotNotesByRoom(room);
         List<NoteGroup>    groups       = noteGroupRepository.findSnapshotGroupsByRoom(room);
         List<ActionItem>   actions      = actionItemRepository.findByRoomOrderByPosition(room);
-        List<Participant>  participants = participantRepository.findByRoom(room);
+        List<Participant>  participants = participantRepository.findByRoomAndRemovedFalse(room);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 

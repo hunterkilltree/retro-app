@@ -19,6 +19,9 @@ public interface ParticipantRepository extends JpaRepository<Participant, UUID> 
 
     List<Participant> findByRoom(Room room);
 
+    /** Participants still listed in the room (excludes ones the admin removed). */
+    List<Participant> findByRoomAndRemovedFalse(Room room);
+
     Optional<Participant> findByRoomAndRole(Room room, ParticipantRole role);
 
     long countByRoom(Room room);

@@ -40,13 +40,23 @@ Client                          Server
 | Message type     | Payload fields (summary) | Admin only? |
 |------------------|--------------------------|-------------|
 | `AddNote`        | `columnId`, `content`    | No |
-| `EditNote`       | `noteId`, `content`      | No (own notes only) |
-| `DeleteNote`     | `noteId`                 | No (own notes only) |
+| `EditNote`       | `noteId`, `content`      | Own notes in `START`; admin (any note) in `DONE` |
+| `DeleteNote`     | `noteId`                 | Own notes in `START`; admin (any note) in `DONE` |
 | `GroupNotes`     | `noteIds[]`, `groupName` | Yes |
 | `UngroupNote`    | `noteId`                 | Yes |
-| `RenameGroup`    | `groupId`, `name`        | Yes |
+| `RenameGroup`    | `groupId`, `name`        | Yes (`REVIEW` or `DONE`) |
 | `AddActionItem`  | `content`                | Yes |
+| `UpdateActionItem` | `actionItemId`, `content` | Yes (`DONE`) |
+| `DeleteActionItem` | `actionItemId`         | Yes (`DONE`) |
+| `UpdateParticipant` | `participantId`, `username` | Yes (`DONE`) |
+| `RemoveParticipant` | `participantId`, `deleteNotes` | Yes (`DONE`; cannot remove the admin) |
 | `AdvanceState`   | —                        | Yes |
+
+In `DONE` the admin finalises the summary before PDF export: the PDF reflects
+the participants, notes, groups and action items exactly as left in the board.
+`RemoveParticipant` soft-removes (`participants.removed = true`): the participant
+disappears from snapshots and the PDF header, while their notes are kept unless
+`deleteNotes` is `true`.
 
 All messages are sent to `/app/room/{roomId}/<messageType camelCase>`.
 
