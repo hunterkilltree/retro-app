@@ -1,0 +1,125 @@
+name: Publish Backend (manual)
+
+# Manually build the backend image and push it to
+#   https://hub.docker.com/r/testfeaturedev/retro-backend
+#
+# Run from: Actions → "Publish Backend (manual)" → Run workflow
+# (pick the branch to build in the "Use workflow from" dropdown).
+#
+# Required repository secrets: DOCKERHUB_USERNAME, DOCKERHUB_TOKEN
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Extra image tag, e.g. 1.2.0 (optional)"
+        required: false
+        default: ""
+      push_latest:
+        description: "Also tag as latest"
+        type: boolean
+        default: true
+      run_tests:
+        description: "Run backend tests before publishing"
+        type: boolean
+        default: true
+
+concurrency:
+  group: publish-backend
+  cancel-in-progress: false
+
+env:
+  IMAGE: testfeaturedev/retro-backend
+
+jobs:
+  test:
+    if: ${{ inputs.run_tests }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: retrodb
+          POSTGRES_USER: retro
+          POSTGRES_PASSWORD: retro_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U retro"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: retro-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Run tests
+        run: bash ./gradlew test --no-daemon
+
+  publish:
+    needs: test
+    # Run when tests passed, or when they were skipped on purpose.
+    if: ${{ !cancelled() && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag input
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ -n "$TAG" ] && ! [[ "$TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "::error::Invalid Docker tag: '$TAG'"
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest,enable=${{ inputs.push_latest }}
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+            type=sha,prefix=sha-
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./retro-server
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Summary
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          {
+            echo "### Published backend image"
+            echo '```'
+            echo "$TAGS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
