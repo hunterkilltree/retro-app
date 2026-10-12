@@ -35,6 +35,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ex.getMessage()));
     }
 
+    @ExceptionHandler(AiSuggestionUnavailableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAiSuggestionUnavailable(AiSuggestionUnavailableException ex) {
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.fail(ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneric(Exception ex) {
         log.error("Unhandled exception", ex);

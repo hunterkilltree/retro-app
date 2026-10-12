@@ -9,7 +9,9 @@ import com.retro.dto.RoomSnapshotResponse;
 import com.retro.dto.SetTimerRequest;
 import com.retro.dto.SetTitleRequest;
 import com.retro.dto.SetVotesRequest;
+import com.retro.dto.SuggestGroupTitleResponse;
 import com.retro.dto.UpdateColumnRequest;
+import com.retro.service.GroupTitleSuggestionService;
 import com.retro.service.PdfExportService;
 import com.retro.service.RoomService;
 import com.retro.entity.Participant;
@@ -70,6 +72,7 @@ public class RoomController {
     private final SimpMessagingTemplate messagingTemplate;
     private final RoomService roomService;
     private final PdfExportService pdfExportService;
+    private final GroupTitleSuggestionService groupTitleSuggestionService;
 
     public RoomController(
             RoomRepository roomRepository,
@@ -81,7 +84,8 @@ public class RoomController {
             VoteRepository voteRepository,
             SimpMessagingTemplate messagingTemplate,
             RoomService roomService,
-            PdfExportService pdfExportService
+            PdfExportService pdfExportService,
+            GroupTitleSuggestionService groupTitleSuggestionService
     ) {
         this.roomRepository = roomRepository;
         this.participantRepository = participantRepository;
@@ -93,6 +97,7 @@ public class RoomController {
         this.messagingTemplate = messagingTemplate;
         this.roomService = roomService;
         this.pdfExportService = pdfExportService;
+        this.groupTitleSuggestionService = groupTitleSuggestionService;
     }
 
     @PostMapping
@@ -461,6 +466,50 @@ public class RoomController {
         roomService.broadcastSnapshot(room);
 
         return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // ─────────────────────────────────────────────
+    //  AI group-title suggestion (admin only, REVIEW state)
+    // ─────────────────────────────────────────────
+
+    /**
+     * Asks Gemini for a title (≤ 3 words) for a note group. Read-only: nothing is persisted —
+     * the admin applies the suggestion through the renameGroup WebSocket message.
+     * Deliberately not @Transactional so no DB connection is held during the AI call.
+     */
+    @PostMapping("/{roomCode}/groups/{groupId}/suggest-title")
+    public ResponseEntity<ApiResponse<SuggestGroupTitleResponse>> suggestGroupTitle(
+            @PathVariable String roomCode,
+            @PathVariable UUID groupId,
+            @RequestHeader("X-Session-Token") String sessionToken
+    ) {
+        String normalized = roomCode.trim().toUpperCase(Locale.ROOT);
+        Room room = roomRepository.findByRoomCode(normalized)
+                .orElseThrow(() -> new RoomNotFoundException(normalized));
+
+        participantRepository.findWithRoomBySessionToken(sessionToken.trim())
+                .filter(p -> p.getRoom().getId().equals(room.getId()))
+                .filter(p -> p.getRole() == ParticipantRole.ADMIN)
+                .orElseThrow(() -> new UnauthorizedException("Only admin can request group title suggestions"));
+
+        if (room.getState() != BoardState.REVIEW) {
+            throw new IllegalArgumentException("Group titles can only be suggested during review");
+        }
+
+        NoteGroup group = noteGroupRepository.findById(groupId)
+                .filter(g -> g.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Group not found"));
+
+        String columnTitle = boardColumnRepository.findById(group.getColumn().getId())
+                .map(BoardColumn::getTitle)
+                .orElse("");
+        List<String> contents = noteRepository.findByGroupOrderByPosition(group).stream()
+                .map(Note::getContent)
+                .filter(c -> c != null && !c.isBlank())
+                .toList();
+
+        String title = groupTitleSuggestionService.suggestTitle(columnTitle, contents);
+        return ResponseEntity.ok(ApiResponse.ok(new SuggestGroupTitleResponse(title)));
     }
 
     // ─── PDF export ───────────────────────────────────────────────────────────
