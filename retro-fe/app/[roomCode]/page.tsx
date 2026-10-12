@@ -201,6 +201,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           notes={notes}
           groups={groups}
           actionItems={actionItems}
+          votes={votes}
           me={me}
           roomCode={roomCode}
           sessionToken={sessionToken}
