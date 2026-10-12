@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./DoneBoard.module.css";
-import type { BoardColumn, Participant, SnapshotActionItem, SnapshotGroup, SnapshotNote } from "@/lib/types";
+import type { BoardColumn, Participant, SnapshotActionItem, SnapshotGroup, SnapshotNote, Vote } from "@/lib/types";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface DoneBoardProps {
@@ -11,6 +11,7 @@ interface DoneBoardProps {
   notes: SnapshotNote[];
   groups: SnapshotGroup[];
   actionItems: SnapshotActionItem[];
+  votes: Vote[];
   me: Participant;
   roomCode: string;
   sessionToken: string;
@@ -31,6 +32,7 @@ export function DoneBoard({
   notes,
   groups,
   actionItems,
+  votes,
   me,
   roomCode,
   sessionToken,
@@ -104,6 +106,13 @@ export function DoneBoard({
     }
   }
 
+  // Vote tallies carried over from REVIEW — shown read-only and included in the PDF
+  const voteCountByNote = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const v of votes) m.set(v.noteId, (m.get(v.noteId) ?? 0) + 1);
+    return m;
+  }, [votes]);
+
   // Build column → groups/notes structure
   const colData = (colId: string) => {
     const colGroups = groups.filter((g) => g.columnId === colId);
@@ -154,10 +163,15 @@ export function DoneBoard({
                   {/* Groups */}
                   {colGroups.map((group) => {
                     const groupNotes = notes.filter((n) => n.groupId === group.id);
+                    const groupVotes = groupNotes.reduce(
+                      (sum, n) => sum + (voteCountByNote.get(n.id) ?? 0),
+                      0,
+                    );
                     return (
                       <div key={group.id} className={styles.group}>
                         <GroupLabel
                           name={group.name}
+                          totalVotes={groupVotes}
                           isAdmin={isAdmin}
                           onRename={(name) => onRenameGroup(group.id, name)}
                         />
@@ -166,6 +180,7 @@ export function DoneBoard({
                             <NoteCard
                               key={note.id}
                               note={note}
+                              voteCount={voteCountByNote.get(note.id) ?? 0}
                               isAdmin={isAdmin}
                               onSave={(content) => onEditNote(note.id, content)}
                               onDelete={() => setNoteToDelete(note)}
@@ -180,6 +195,7 @@ export function DoneBoard({
                     <NoteCard
                       key={note.id}
                       note={note}
+                      voteCount={voteCountByNote.get(note.id) ?? 0}
                       isAdmin={isAdmin}
                       onSave={(content) => onEditNote(note.id, content)}
                       onDelete={() => setNoteToDelete(note)}
@@ -494,11 +510,12 @@ function ParticipantChip({ participant, isAdmin, onRename, onRemove }: Participa
 
 interface GroupLabelProps {
   name: string | null;
+  totalVotes: number;
   isAdmin: boolean;
   onRename: (name: string) => void;
 }
 
-function GroupLabel({ name, isAdmin, onRename }: GroupLabelProps) {
+function GroupLabel({ name, totalVotes, isAdmin, onRename }: GroupLabelProps) {
   const [editing, setEditing] = useState(false);
 
   if (editing) {
@@ -521,7 +538,10 @@ function GroupLabel({ name, isAdmin, onRename }: GroupLabelProps) {
 
   return (
     <div className={styles.groupLabel}>
-      <span>{name || "Group"}</span>
+      <span className={styles.groupLabelText}>{name || "Group"}</span>
+      <span className={styles.groupVotes} title="Total votes in this group">
+        ▲ {totalVotes}
+      </span>
       {isAdmin && (
         <button
           className={styles.groupEditBtn}
@@ -538,12 +558,13 @@ function GroupLabel({ name, isAdmin, onRename }: GroupLabelProps) {
 
 interface NoteCardProps {
   note: SnapshotNote;
+  voteCount: number;
   isAdmin: boolean;
   onSave: (content: string) => void;
   onDelete: () => void;
 }
 
-function NoteCard({ note, isAdmin, onSave, onDelete }: NoteCardProps) {
+function NoteCard({ note, voteCount, isAdmin, onSave, onDelete }: NoteCardProps) {
   const [editing, setEditing] = useState(false);
 
   return (
@@ -587,6 +608,13 @@ function NoteCard({ note, isAdmin, onSave, onDelete }: NoteCardProps) {
         <span className={styles.authorDot} style={{ backgroundColor: note.authorColor }} />
         <span className={styles.authorName}>{note.authorName}</span>
       </div>
+      <span
+        className={styles.voteBadge}
+        title={`${voteCount} vote${voteCount === 1 ? "" : "s"}`}
+        aria-label={`${voteCount} vote${voteCount === 1 ? "" : "s"}`}
+      >
+        ▲ {voteCount}
+      </span>
     </div>
   );
 }
