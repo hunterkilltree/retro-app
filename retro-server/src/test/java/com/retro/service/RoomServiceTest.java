@@ -178,7 +178,7 @@ class RoomServiceTest {
     }
 
     private void stubEmptyRepositories(Room room) {
-        when(participantRepository.findByRoom(room)).thenReturn(List.of());
+        when(participantRepository.findByRoomAndRemovedFalse(room)).thenReturn(List.of());
         when(boardColumnRepository.findByRoomOrderByPosition(room)).thenReturn(List.of());
         when(noteGroupRepository.findSnapshotGroupsByRoom(room)).thenReturn(List.of());
         when(noteRepository.findSnapshotNotesByRoom(room)).thenReturn(List.of());

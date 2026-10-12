@@ -95,6 +95,18 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
     sendMessage(`/app/room/${roomCode}/deleteActionItem`, { actionItemId });
   }
 
+  function handleUpdateActionItem(actionItemId: string, content: string) {
+    sendMessage(`/app/room/${roomCode}/updateActionItem`, { actionItemId, content });
+  }
+
+  function handleUpdateParticipant(participantId: string, username: string) {
+    sendMessage(`/app/room/${roomCode}/updateParticipant`, { participantId, username });
+  }
+
+  function handleRemoveParticipant(participantId: string, deleteNotes: boolean) {
+    sendMessage(`/app/room/${roomCode}/removeParticipant`, { participantId, deleteNotes });
+  }
+
   if (!room || !me) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--bg)" }}>
@@ -184,6 +196,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
 
       {room.state === "DONE" && me && (
         <DoneBoard
+          participants={participants}
           columns={columns}
           notes={notes}
           groups={groups}
@@ -193,6 +206,12 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           sessionToken={sessionToken}
           onAddActionItem={handleAddActionItem}
           onDeleteActionItem={handleDeleteActionItem}
+          onUpdateActionItem={handleUpdateActionItem}
+          onEditNote={handleEditNote}
+          onDeleteNote={handleDeleteNote}
+          onRenameGroup={handleRenameGroup}
+          onUpdateParticipant={handleUpdateParticipant}
+          onRemoveParticipant={handleRemoveParticipant}
           onRoomDeleted={() => {
             localStorage.removeItem(LS_TOKEN_KEY);
             localStorage.removeItem(LS_ROOM_KEY);

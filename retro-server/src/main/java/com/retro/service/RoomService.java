@@ -50,7 +50,7 @@ public class RoomService {
      */
     @Transactional(readOnly = true)
     public BoardSnapshotMessage buildSnapshot(Room room) {
-        List<Participant> participants = participantRepository.findByRoom(room);
+        List<Participant> participants = participantRepository.findByRoomAndRemovedFalse(room);
         List<BoardColumn> columns = boardColumnRepository.findByRoomOrderByPosition(room);
         List<NoteGroup> groups = noteGroupRepository.findSnapshotGroupsByRoom(room);
         List<Note> notes = noteRepository.findSnapshotNotesByRoom(room);

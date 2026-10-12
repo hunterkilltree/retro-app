@@ -29,8 +29,10 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @Controller
@@ -154,7 +156,10 @@ public class RoomWsController {
 
     record EditNotePayload(String noteId, String content) {}
 
-    /** Note author edits their own note (state must be START). */
+    /**
+     * Note author edits their own note (state must be START), or the admin
+     * edits any note while finalising the summary (state must be DONE).
+     */
     @MessageMapping("/room/{roomCode}/editNote")
     @Transactional
     public void editNote(
@@ -165,25 +170,35 @@ public class RoomWsController {
         Room room = resolveRoom(roomCode);
         Participant p = resolveParticipant(headerAccessor, room);
 
-        if (room.getState() != BoardState.START) return;
+        if (room.getState() != BoardState.START && room.getState() != BoardState.DONE) return;
+
+        String content = payload.content() == null ? "" : payload.content().strip();
+        if (content.isBlank()) return;
 
         UUID noteId = UUID.fromString(payload.noteId());
         Note note = noteRepository.findById(noteId)
                 .filter(n -> n.getRoom().getId().equals(room.getId()))
                 .orElseThrow(() -> new RoomNotFoundException("Note not found"));
 
-        if (!note.getParticipant().getId().equals(p.getId())) {
+        if (room.getState() == BoardState.DONE) {
+            if (p.getRole() != ParticipantRole.ADMIN) {
+                throw new UnauthorizedException("Only admin can edit notes in the summary");
+            }
+        } else if (!note.getParticipant().getId().equals(p.getId())) {
             throw new UnauthorizedException("Only the note author can edit it");
         }
 
-        note.setContent(payload.content().trim());
+        note.setContent(content);
         noteRepository.save(note);
         roomService.broadcastSnapshot(room);
     }
 
     record DeleteNotePayload(String noteId) {}
 
-    /** Note author deletes their own note (state must be START). */
+    /**
+     * Note author deletes their own note (state must be START), or the admin
+     * deletes any note while finalising the summary (state must be DONE).
+     */
     @MessageMapping("/room/{roomCode}/deleteNote")
     @Transactional
     public void deleteNote(
@@ -194,28 +209,55 @@ public class RoomWsController {
         Room room = resolveRoom(roomCode);
         Participant p = resolveParticipant(headerAccessor, room);
 
-        if (room.getState() != BoardState.START) return;
+        if (room.getState() != BoardState.START && room.getState() != BoardState.DONE) return;
 
         UUID noteId = UUID.fromString(payload.noteId());
         Note note = noteRepository.findById(noteId)
                 .filter(n -> n.getRoom().getId().equals(room.getId()))
                 .orElseThrow(() -> new RoomNotFoundException("Note not found"));
 
-        if (!note.getParticipant().getId().equals(p.getId())) {
+        if (room.getState() == BoardState.DONE) {
+            if (p.getRole() != ParticipantRole.ADMIN) {
+                throw new UnauthorizedException("Only admin can delete notes in the summary");
+            }
+        } else if (!note.getParticipant().getId().equals(p.getId())) {
             throw new UnauthorizedException("Only the note author can delete it");
         }
 
-        BoardColumn column = note.getColumn();
-        noteRepository.delete(note);
-
-        // Re-index remaining notes in column
-        List<Note> remaining = noteRepository.findByColumnOrderByPosition(column);
-        for (int i = 0; i < remaining.size(); i++) {
-            remaining.get(i).setPosition(i);
-        }
-        noteRepository.saveAll(remaining);
-
+        deleteNotes(List.of(note));
         roomService.broadcastSnapshot(room);
+    }
+
+    /**
+     * Delete notes (their votes cascade in the DB), drop any group left empty,
+     * and re-index the remaining notes in each affected column.
+     */
+    private void deleteNotes(List<Note> notes) {
+        if (notes.isEmpty()) return;
+
+        Map<UUID, BoardColumn> columns = new LinkedHashMap<>();
+        Map<UUID, NoteGroup> groups = new LinkedHashMap<>();
+        for (Note n : notes) {
+            columns.putIfAbsent(n.getColumn().getId(), n.getColumn());
+            if (n.getGroup() != null) groups.putIfAbsent(n.getGroup().getId(), n.getGroup());
+        }
+
+        noteRepository.deleteAll(notes);
+        noteRepository.flush();
+
+        for (NoteGroup group : groups.values()) {
+            if (noteRepository.findByGroupOrderByPosition(group).isEmpty()) {
+                noteGroupRepository.delete(group);
+            }
+        }
+
+        for (BoardColumn column : columns.values()) {
+            List<Note> remaining = noteRepository.findByColumnOrderByPosition(column);
+            for (int i = 0; i < remaining.size(); i++) {
+                remaining.get(i).setPosition(i);
+            }
+            noteRepository.saveAll(remaining);
+        }
     }
 
     // ─── Grouping ─────────────────────────────────────────────────────────────
@@ -283,7 +325,7 @@ public class RoomWsController {
     record RenameGroupPayload(String groupId, String name) {}
 
     /**
-     * Admin renames a group (state must be REVIEW).
+     * Admin renames a group (state must be REVIEW, or DONE while finalising the summary).
      * Passing an empty/blank name clears the label (shows default "Group" in UI).
      */
     @MessageMapping("/room/{roomCode}/renameGroup")
@@ -299,7 +341,7 @@ public class RoomWsController {
         if (p.getRole() != ParticipantRole.ADMIN) {
             throw new UnauthorizedException("Only admin can rename groups");
         }
-        if (room.getState() != BoardState.REVIEW) return;
+        if (room.getState() != BoardState.REVIEW && room.getState() != BoardState.DONE) return;
 
         NoteGroup group = noteGroupRepository.findById(UUID.fromString(payload.groupId()))
                 .filter(g -> g.getRoom().getId().equals(room.getId()))
@@ -474,6 +516,117 @@ public class RoomWsController {
         List<ActionItem> remaining = actionItemRepository.findByRoomOrderByPosition(room);
         for (int i = 0; i < remaining.size(); i++) remaining.get(i).setPosition(i);
         actionItemRepository.saveAll(remaining);
+
+        roomService.broadcastSnapshot(room);
+    }
+
+    record UpdateActionItemPayload(String actionItemId, String content) {}
+
+    /** Admin edits an action item's text (state must be DONE). */
+    @MessageMapping("/room/{roomCode}/updateActionItem")
+    @Transactional
+    public void updateActionItem(
+            @DestinationVariable String roomCode,
+            @Payload UpdateActionItemPayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (p.getRole() != ParticipantRole.ADMIN) {
+            throw new UnauthorizedException("Only admin can edit action items");
+        }
+        if (room.getState() != BoardState.DONE) return;
+
+        String content = payload.content() == null ? "" : payload.content().strip();
+        if (content.isBlank()) return;
+
+        ActionItem item = actionItemRepository.findById(UUID.fromString(payload.actionItemId()))
+                .filter(a -> a.getRoom().getId().equals(room.getId()))
+                .orElseThrow(() -> new RoomNotFoundException("Action item not found"));
+
+        item.setContent(content);
+        actionItemRepository.save(item);
+
+        roomService.broadcastSnapshot(room);
+    }
+
+    // ─── Participants (DONE state — finalising the PDF summary) ──────────────
+
+    private static final int MAX_USERNAME_LENGTH = 30;
+
+    record UpdateParticipantPayload(String participantId, String username) {}
+
+    /** Admin renames a participant (state must be DONE). Note authorship follows the new name. */
+    @MessageMapping("/room/{roomCode}/updateParticipant")
+    @Transactional
+    public void updateParticipant(
+            @DestinationVariable String roomCode,
+            @Payload UpdateParticipantPayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (p.getRole() != ParticipantRole.ADMIN) {
+            throw new UnauthorizedException("Only admin can edit participants");
+        }
+        if (room.getState() != BoardState.DONE) return;
+
+        String username = payload.username() == null ? "" : payload.username().strip();
+        if (username.isBlank() || username.length() > MAX_USERNAME_LENGTH) return;
+
+        Participant target = participantRepository.findById(UUID.fromString(payload.participantId()))
+                .filter(t -> t.getRoom().getId().equals(room.getId()) && !t.isRemoved())
+                .orElseThrow(() -> new RoomNotFoundException("Participant not found"));
+
+        target.setUsername(username);
+        participantRepository.save(target);
+
+        roomService.broadcastSnapshot(room);
+    }
+
+    record RemoveParticipantPayload(String participantId, boolean deleteNotes) {}
+
+    /**
+     * Admin removes a participant from the summary (state must be DONE).
+     * The participant is soft-removed so they no longer appear in the participant
+     * list or the PDF. Their notes are kept unless {@code deleteNotes} is true.
+     * The admin cannot remove themselves.
+     */
+    @MessageMapping("/room/{roomCode}/removeParticipant")
+    @Transactional
+    public void removeParticipant(
+            @DestinationVariable String roomCode,
+            @Payload RemoveParticipantPayload payload,
+            SimpMessageHeaderAccessor headerAccessor
+    ) {
+        Room room = resolveRoom(roomCode);
+        Participant p = resolveParticipant(headerAccessor, room);
+
+        if (p.getRole() != ParticipantRole.ADMIN) {
+            throw new UnauthorizedException("Only admin can remove participants");
+        }
+        if (room.getState() != BoardState.DONE) return;
+
+        Participant target = participantRepository.findById(UUID.fromString(payload.participantId()))
+                .filter(t -> t.getRoom().getId().equals(room.getId()) && !t.isRemoved())
+                .orElseThrow(() -> new RoomNotFoundException("Participant not found"));
+
+        if (target.getRole() == ParticipantRole.ADMIN) {
+            log.warn("removeParticipant rejected — cannot remove the admin of room {}", room.getRoomCode());
+            return;
+        }
+
+        if (payload.deleteNotes()) {
+            List<Note> theirNotes = noteRepository.findByRoomOrderByPosition(room).stream()
+                    .filter(n -> n.getParticipant().getId().equals(target.getId()))
+                    .toList();
+            deleteNotes(theirNotes);
+        }
+
+        target.setRemoved(true);
+        participantRepository.save(target);
 
         roomService.broadcastSnapshot(room);
     }
