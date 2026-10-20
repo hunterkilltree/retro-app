@@ -5,13 +5,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -45,9 +48,13 @@ public class GroupTitleSuggestionService {
         this.apiKey = apiKey == null ? "" : apiKey.strip();
         this.model = model;
 
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(5_000);
-        requestFactory.setReadTimeout(15_000);
+        // JDK HttpClient (HTTP/2-capable). Generous read timeout: newer "thinking" Gemini
+        // models can take well over 15 s before the body is complete.
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofSeconds(60));
         this.restClient = RestClient.builder()
                 .baseUrl(baseUrl)
                 .requestFactory(requestFactory)
@@ -87,8 +94,8 @@ public class GroupTitleSuggestionService {
                 "generationConfig", Map.of("temperature", 0.4)
         );
 
-        // Read as text and parse ourselves: Gemini sometimes answers with a non-JSON
-        // content type (e.g. application/octet-stream), which the JSON converter rejects.
+        // Read the raw bytes and parse ourselves, bypassing message converters: Gemini may
+        // answer with a non-JSON content type (e.g. application/octet-stream).
         String raw;
         try {
             raw = restClient.post()
@@ -97,10 +104,20 @@ public class GroupTitleSuggestionService {
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .body(body)
-                    .retrieve()
-                    .body(String.class);
+                    .exchange((request, response) -> {
+                        String text = new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8);
+                        // Full raw response, logged before any parsing, to diagnose Gemini issues.
+                        log.info("Gemini response (model {}): status={} headers={} body={}",
+                                modelToUse, response.getStatusCode(), response.getHeaders(), text);
+                        if (response.getStatusCode().isError()) {
+                            log.warn("Gemini returned {}: {}", response.getStatusCode(), snippet(text));
+                            throw new AiSuggestionUnavailableException(
+                                    "AI suggestion service failed (" + response.getStatusCode().value() + ")");
+                        }
+                        return text;
+                    });
         } catch (RestClientException e) {
-            log.warn("Gemini request failed: {}", e.getMessage());
+            log.warn("Gemini request failed: {} (root cause: {})", e.getMessage(), rootCause(e));
             throw new AiSuggestionUnavailableException("AI suggestion service failed", e);
         }
         Map<?, ?> response = parseResponse(raw);
@@ -142,10 +159,19 @@ public class GroupTitleSuggestionService {
         try {
             return JSON.readValue(raw, Map.class);
         } catch (JacksonException e) {
-            String snippet = raw.length() > 200 ? raw.substring(0, 200) + "…" : raw;
-            log.warn("Gemini returned a non-JSON response: {}", snippet);
+            log.warn("Gemini returned a non-JSON response: {}", snippet(raw));
             throw new AiSuggestionUnavailableException("AI returned an unreadable response", e);
         }
+    }
+
+    private static String snippet(String text) {
+        return text.length() > 300 ? text.substring(0, 300) + "…" : text;
+    }
+
+    private static String rootCause(Throwable e) {
+        Throwable t = e;
+        while (t.getCause() != null && t.getCause() != t) t = t.getCause();
+        return t.getClass().getSimpleName() + ": " + t.getMessage();
     }
 
     private static String extractText(Map<?, ?> response) {
