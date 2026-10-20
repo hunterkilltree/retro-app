@@ -123,6 +123,8 @@ public class RoomController {
                 .roomCode(roomCode)
                 .state(BoardState.SETUP)
                 .timerSeconds(300)
+                .geminiModel(body == null || body.geminiModel() == null || body.geminiModel().isBlank()
+                        ? null : body.geminiModel().strip())
                 .geminiApiKey(body == null || body.geminiApiKey() == null || body.geminiApiKey().isBlank()
                         ? null : body.geminiApiKey().strip())
                 .build();
@@ -513,7 +515,7 @@ public class RoomController {
                 .filter(c -> c != null && !c.isBlank())
                 .toList();
 
-        String title = groupTitleSuggestionService.suggestTitle(room.getGeminiApiKey(), columnTitle, contents);
+        String title = groupTitleSuggestionService.suggestTitle(room.getGeminiApiKey(), room.getGeminiModel(), columnTitle, contents);
         return ResponseEntity.ok(ApiResponse.ok(new SuggestGroupTitleResponse(title)));
     }
 
