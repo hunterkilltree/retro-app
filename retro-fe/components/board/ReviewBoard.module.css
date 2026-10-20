@@ -203,6 +203,37 @@ html[data-mode="dark"] .group {
   opacity: 1;
 }
 
+.suggestBtn {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border: 1px solid var(--accent2);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--accent2);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.suggestBtn:hover:not(:disabled) {
+  background: var(--accent2);
+  color: var(--surface);
+}
+
+.suggestBtn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.suggestError {
+  padding: 3px 10px;
+  font-size: 0.65rem;
+  color: var(--red);
+}
+
 .groupLabelInput {
   display: block;
   width: 100%;

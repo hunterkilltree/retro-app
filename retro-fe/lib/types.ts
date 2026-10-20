@@ -14,6 +14,8 @@ export type Room = {
   timerStartedAt?: string | null;
   /** Votes each participant gets in REVIEW. null until the host sets it in SETUP. */
   votesPerUser?: number | null;
+  /** True when AI group-title suggestions are available (host supplied a Gemini API key). */
+  aiEnabled?: boolean;
 };
 export type BoardColumn = { id: string; title: string; color: string; position: number };
 export type Note = {
@@ -101,6 +103,7 @@ export type BoardSnapshot = {
     timerSeconds: number;
     timerEndsAtMs: number | null;
     votesPerUser: number | null;
+    aiEnabled: boolean;
   };
   participants: Participant[];
   columns: BoardColumn[];

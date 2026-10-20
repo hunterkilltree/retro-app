@@ -23,3 +23,8 @@ spring:
 server:
   port: 8080
 
+# AI group-title suggestions (Google Gemini). Feature is disabled when the key is empty.
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-2.5-flash}
+

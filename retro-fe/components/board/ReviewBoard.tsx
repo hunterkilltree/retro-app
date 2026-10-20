@@ -148,22 +148,43 @@ function GroupLabel({
   group,
   isAdmin,
   totalVotes,
+  aiEnabled,
   onRename,
+  onSuggest,
 }: {
   group: SnapshotGroup;
   isAdmin: boolean;
   totalVotes: number;
+  aiEnabled: boolean;
   onRename: (groupId: string, name: string) => void;
+  onSuggest: (groupId: string) => Promise<string>;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(group.name ?? "");
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function startEdit() {
+  function startEdit(initial = group.name ?? "") {
     if (!isAdmin) return;
-    setDraft(group.name ?? "");
+    setDraft(initial);
     setEditing(true);
     setTimeout(() => inputRef.current?.select(), 0);
+  }
+
+  // Fetch an AI suggestion and open the editor prefilled with it, so the admin
+  // can accept (Enter), tweak, or discard (Esc).
+  async function suggest(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSuggesting(true);
+    setSuggestError(null);
+    try {
+      startEdit(await onSuggest(group.id));
+    } catch (err) {
+      setSuggestError(err instanceof Error ? err.message : "Could not get a suggestion");
+    } finally {
+      setSuggesting(false);
+    }
   }
 
   function commit() {
@@ -193,18 +214,32 @@ function GroupLabel({
   }
 
   return (
-    <div
-      className={styles.groupLabel}
-      onClick={startEdit}
-      title={isAdmin ? "Click to rename" : undefined}
-      style={{ cursor: isAdmin ? "text" : "default" }}
-    >
-      <span className={styles.groupLabelText}>{group.name || "Group"}</span>
-      {isAdmin && <span className={styles.groupLabelEdit}>✏</span>}
-      <span className={styles.groupVotes} title="Total votes in this group">
-        ▲ {totalVotes}
-      </span>
-    </div>
+    <>
+      <div
+        className={styles.groupLabel}
+        onClick={() => startEdit()}
+        title={isAdmin ? "Click to rename" : undefined}
+        style={{ cursor: isAdmin ? "text" : "default" }}
+      >
+        <span className={styles.groupLabelText}>{group.name || "Group"}</span>
+        {isAdmin && <span className={styles.groupLabelEdit}>✏</span>}
+        {isAdmin && aiEnabled && (
+          <button
+            type="button"
+            className={styles.suggestBtn}
+            onClick={suggest}
+            disabled={suggesting}
+            title="Suggest a title with AI (max 3 words)"
+          >
+            {suggesting ? "…" : "✨ Suggest"}
+          </button>
+        )}
+        <span className={styles.groupVotes} title="Total votes in this group">
+          ▲ {totalVotes}
+        </span>
+      </div>
+      {suggestError && <div className={styles.suggestError}>{suggestError}</div>}
+    </>
   );
 }
 
@@ -215,9 +250,11 @@ interface ReviewBoardProps {
   groups: SnapshotGroup[];
   votes: Vote[];
   votesPerUser: number;
+  aiEnabled: boolean;
   me: Participant;
   onGroupNotes: (draggedNoteId: string, targetNoteId: string) => void;
   onRenameGroup: (groupId: string, name: string) => void;
+  onSuggestGroupTitle: (groupId: string) => Promise<string>;
   onUngroupNote: (noteId: string) => void;
   onToggleVote: (noteId: string) => void;
   onMoveToDone: () => void;
@@ -229,9 +266,11 @@ export function ReviewBoard({
   groups,
   votes,
   votesPerUser,
+  aiEnabled,
   me,
   onGroupNotes,
   onRenameGroup,
+  onSuggestGroupTitle,
   onUngroupNote,
   onToggleVote,
   onMoveToDone,
@@ -354,7 +393,9 @@ export function ReviewBoard({
                           group={group}
                           isAdmin={isAdmin}
                           totalVotes={groupVotes}
+                          aiEnabled={aiEnabled}
                           onRename={onRenameGroup}
+                          onSuggest={onSuggestGroupTitle}
                         />
                         <div className={styles.groupNotes}>
                           {groupNotes.map((note) => (
