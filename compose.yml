@@ -33,7 +33,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-retro}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-retro_secret}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
     depends_on:
       postgres:
         condition: service_healthy

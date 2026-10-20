@@ -35,7 +35,7 @@ public class GroupTitleSuggestionService {
 
     public GroupTitleSuggestionService(
             @Value("${gemini.api-key:}") String apiKey,
-            @Value("${gemini.model:gemini-2.5-flash}") String model,
+            @Value("${gemini.model:gemini-3.8-flash}") String model,
             @Value("${gemini.base-url:https://generativelanguage.googleapis.com/v1beta}") String baseUrl
     ) {
         this.apiKey = apiKey == null ? "" : apiKey.strip();
