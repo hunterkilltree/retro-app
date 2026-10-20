@@ -41,6 +41,11 @@ public class Participant {
     @Column(name = "session_token", nullable = false, unique = true, length = 64)
     private String sessionToken;
 
+    /** Soft-removed by the admin — hidden from snapshots and the PDF export. */
+    @Builder.Default
+    @Column(name = "removed", nullable = false)
+    private boolean removed = false;
+
     @Column(name = "joined_at", nullable = false, updatable = false)
     private LocalDateTime joinedAt;
 

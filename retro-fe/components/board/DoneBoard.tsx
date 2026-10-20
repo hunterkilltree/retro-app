@@ -1,33 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./DoneBoard.module.css";
-import type { BoardColumn, Participant, SnapshotActionItem, SnapshotGroup, SnapshotNote } from "@/lib/types";
+import type { BoardColumn, Participant, SnapshotActionItem, SnapshotGroup, SnapshotNote, Vote } from "@/lib/types";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface DoneBoardProps {
+  participants: Participant[];
   columns: BoardColumn[];
   notes: SnapshotNote[];
   groups: SnapshotGroup[];
   actionItems: SnapshotActionItem[];
+  votes: Vote[];
   me: Participant;
   roomCode: string;
   sessionToken: string;
   onAddActionItem: (content: string) => void;
   onDeleteActionItem: (id: string) => void;
+  onUpdateActionItem: (id: string, content: string) => void;
+  onEditNote: (noteId: string, content: string) => void;
+  onDeleteNote: (noteId: string) => void;
+  onRenameGroup: (groupId: string, name: string) => void;
+  onUpdateParticipant: (participantId: string, username: string) => void;
+  onRemoveParticipant: (participantId: string, deleteNotes: boolean) => void;
   onRoomDeleted?: () => void;
 }
 
 export function DoneBoard({
+  participants,
   columns,
   notes,
   groups,
   actionItems,
+  votes,
   me,
   roomCode,
   sessionToken,
   onAddActionItem,
   onDeleteActionItem,
+  onUpdateActionItem,
+  onEditNote,
+  onDeleteNote,
+  onRenameGroup,
+  onUpdateParticipant,
+  onRemoveParticipant,
   onRoomDeleted,
 }: DoneBoardProps) {
   const isAdmin = me.role === "ADMIN";
@@ -35,6 +51,10 @@ export function DoneBoard({
   const [exporting, setExporting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editingActionId, setEditingActionId] = useState<string | null>(null);
+  const [noteToDelete, setNoteToDelete] = useState<SnapshotNote | null>(null);
+  const [participantToRemove, setParticipantToRemove] = useState<Participant | null>(null);
+  const [alsoDeleteNotes, setAlsoDeleteNotes] = useState(false);
 
   async function handleDeleteRoom() {
     setDeleting(true);
@@ -86,6 +106,13 @@ export function DoneBoard({
     }
   }
 
+  // Vote tallies carried over from REVIEW — shown read-only and included in the PDF
+  const voteCountByNote = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const v of votes) m.set(v.noteId, (m.get(v.noteId) ?? 0) + 1);
+    return m;
+  }, [votes]);
+
   // Build column → groups/notes structure
   const colData = (colId: string) => {
     const colGroups = groups.filter((g) => g.columnId === colId);
@@ -98,6 +125,29 @@ export function DoneBoard({
       {/* ── Summary section ── */}
       <div className={styles.summarySection}>
         <div className={styles.sectionTitle}>Session Summary</div>
+        {isAdmin && (
+          <div className={styles.editHint}>
+            Review everything before exporting — you can rename or remove participants and edit or
+            delete notes, group names and action items. The PDF reflects exactly what you see here.
+          </div>
+        )}
+
+        {/* Participants (host + joined) — mirrors the PDF header */}
+        <div className={styles.participantsRow}>
+          <span className={styles.participantsLabel}>Participants</span>
+          {participants.map((p) => (
+            <ParticipantChip
+              key={p.id}
+              participant={p}
+              isAdmin={isAdmin}
+              onRename={(name) => onUpdateParticipant(p.id, name)}
+              onRemove={() => {
+                setAlsoDeleteNotes(false);
+                setParticipantToRemove(p);
+              }}
+            />
+          ))}
+        </div>
         <div className={styles.columns}>
           {columns.map((col) => {
             const { colGroups, ungrouped } = colData(col.id);
@@ -113,12 +163,28 @@ export function DoneBoard({
                   {/* Groups */}
                   {colGroups.map((group) => {
                     const groupNotes = notes.filter((n) => n.groupId === group.id);
+                    const groupVotes = groupNotes.reduce(
+                      (sum, n) => sum + (voteCountByNote.get(n.id) ?? 0),
+                      0,
+                    );
                     return (
                       <div key={group.id} className={styles.group}>
-                        <div className={styles.groupLabel}>{group.name || "Group"}</div>
+                        <GroupLabel
+                          name={group.name}
+                          totalVotes={groupVotes}
+                          isAdmin={isAdmin}
+                          onRename={(name) => onRenameGroup(group.id, name)}
+                        />
                         <div className={styles.groupNotes}>
                           {groupNotes.map((note) => (
-                            <NoteCard key={note.id} note={note} />
+                            <NoteCard
+                              key={note.id}
+                              note={note}
+                              voteCount={voteCountByNote.get(note.id) ?? 0}
+                              isAdmin={isAdmin}
+                              onSave={(content) => onEditNote(note.id, content)}
+                              onDelete={() => setNoteToDelete(note)}
+                            />
                           ))}
                         </div>
                       </div>
@@ -126,7 +192,14 @@ export function DoneBoard({
                   })}
                   {/* Ungrouped */}
                   {ungrouped.map((note) => (
-                    <NoteCard key={note.id} note={note} />
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      voteCount={voteCountByNote.get(note.id) ?? 0}
+                      isAdmin={isAdmin}
+                      onSave={(content) => onEditNote(note.id, content)}
+                      onDelete={() => setNoteToDelete(note)}
+                    />
                   ))}
                 </div>
               </div>
@@ -171,16 +244,40 @@ export function DoneBoard({
           {actionItems.map((item, i) => (
             <div key={item.id} className={styles.actionItem}>
               <span className={styles.actionIndex}>{i + 1}</span>
-              <span className={styles.actionContent}>{item.content}</span>
-              {isAdmin && (
-                <button
-                  className={styles.deleteBtn}
-                  onClick={() => onDeleteActionItem(item.id)}
-                  title="Delete"
-                  aria-label="Delete action item"
-                >
-                  ✕
-                </button>
+              {editingActionId === item.id ? (
+                <InlineEditor
+                  initialValue={item.content}
+                  multiline
+                  maxLength={500}
+                  ariaLabel="Edit action item"
+                  onSave={(content) => {
+                    if (content !== item.content) onUpdateActionItem(item.id, content);
+                    setEditingActionId(null);
+                  }}
+                  onCancel={() => setEditingActionId(null)}
+                />
+              ) : (
+                <span className={styles.actionContent}>{item.content}</span>
+              )}
+              {isAdmin && editingActionId !== item.id && (
+                <span className={styles.itemControls}>
+                  <button
+                    className={styles.iconBtn}
+                    onClick={() => setEditingActionId(item.id)}
+                    title="Edit"
+                    aria-label="Edit action item"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={() => onDeleteActionItem(item.id)}
+                    title="Delete"
+                    aria-label="Delete action item"
+                  >
+                    ✕
+                  </button>
+                </span>
               )}
             </div>
           ))}
@@ -208,6 +305,51 @@ export function DoneBoard({
         )}
       </div>
 
+      {/* Delete-note confirmation */}
+      {noteToDelete && (
+        <ConfirmDialog
+          title="Delete Note"
+          message={`Delete this note by ${noteToDelete.authorName}? It will be removed from the summary and the PDF export, along with its votes.`}
+          confirmLabel="Delete note"
+          dangerous
+          onConfirm={() => {
+            onDeleteNote(noteToDelete.id);
+            setNoteToDelete(null);
+          }}
+          onCancel={() => setNoteToDelete(null)}
+        />
+      )}
+
+      {/* Remove-participant confirmation */}
+      {participantToRemove && (
+        <ConfirmDialog
+          title="Remove Participant"
+          message={`Remove ${participantToRemove.username} from the participant list? They will no longer appear in the PDF export.`}
+          confirmLabel="Remove"
+          dangerous
+          onConfirm={() => {
+            onRemoveParticipant(participantToRemove.id, alsoDeleteNotes);
+            setParticipantToRemove(null);
+          }}
+          onCancel={() => setParticipantToRemove(null)}
+        >
+          {(() => {
+            const count = notes.filter((n) => n.participantId === participantToRemove.id).length;
+            return (
+              <label className={styles.checkboxRow}>
+                <input
+                  type="checkbox"
+                  checked={alsoDeleteNotes}
+                  onChange={(e) => setAlsoDeleteNotes(e.target.checked)}
+                  disabled={count === 0}
+                />
+                Also delete their {count} note{count === 1 ? "" : "s"}
+              </label>
+            );
+          })()}
+        </ConfirmDialog>
+      )}
+
       {/* Delete-room confirmation */}
       {showDeleteDialog && (
         <ConfirmDialog
@@ -224,14 +366,255 @@ export function DoneBoard({
   );
 }
 
-function NoteCard({ note }: { note: SnapshotNote }) {
+interface InlineEditorProps {
+  initialValue: string;
+  multiline?: boolean;
+  maxLength: number;
+  ariaLabel: string;
+  /** Allow saving an empty value (e.g. clearing a group name). */
+  allowEmpty?: boolean;
+  onSave: (value: string) => void;
+  onCancel: () => void;
+}
+
+/** Inline text editor: Enter saves (Shift+Enter for newline when multiline), Esc cancels. */
+function InlineEditor({
+  initialValue,
+  multiline = false,
+  maxLength,
+  ariaLabel,
+  allowEmpty = false,
+  onSave,
+  onCancel,
+}: InlineEditorProps) {
+  const [value, setValue] = useState(initialValue);
+  const ref = useRef<HTMLTextAreaElement & HTMLInputElement>(null);
+
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
+
+  const trimmed = value.trim();
+  const canSave = allowEmpty || trimmed.length > 0;
+
+  function save() {
+    if (!canSave) return;
+    onSave(trimmed);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onCancel();
+    } else if (e.key === "Enter" && !(multiline && e.shiftKey)) {
+      e.preventDefault();
+      save();
+    }
+  }
+
+  return (
+    <div className={styles.inlineEditor}>
+      {multiline ? (
+        <textarea
+          ref={ref}
+          className={styles.editInput}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          maxLength={maxLength}
+          rows={3}
+          aria-label={ariaLabel}
+        />
+      ) : (
+        <input
+          ref={ref}
+          className={styles.editInput}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          maxLength={maxLength}
+          aria-label={ariaLabel}
+        />
+      )}
+      <div className={styles.editActions}>
+        <button className={styles.editCancelBtn} onClick={onCancel}>
+          Cancel
+        </button>
+        <button className={styles.editSaveBtn} onClick={save} disabled={!canSave}>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface ParticipantChipProps {
+  participant: Participant;
+  isAdmin: boolean;
+  onRename: (username: string) => void;
+  onRemove: () => void;
+}
+
+function ParticipantChip({ participant, isAdmin, onRename, onRemove }: ParticipantChipProps) {
+  const [editing, setEditing] = useState(false);
+  const isHost = participant.role === "ADMIN";
+
+  if (editing) {
+    return (
+      <div className={styles.participantEditing}>
+        <InlineEditor
+          initialValue={participant.username}
+          maxLength={30}
+          ariaLabel={`Rename ${participant.username}`}
+          onSave={(name) => {
+            if (name !== participant.username) onRename(name);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <span className={`${styles.participantChip} ${isHost ? styles.hostChip : ""}`}>
+      <span className={styles.authorDot} style={{ backgroundColor: participant.color }} />
+      {isHost && "👑 "}
+      {participant.username}
+      {isAdmin && (
+        <>
+          <button
+            className={styles.chipBtn}
+            onClick={() => setEditing(true)}
+            title="Rename"
+            aria-label={`Rename ${participant.username}`}
+          >
+            ✎
+          </button>
+          {!isHost && (
+            <button
+              className={`${styles.chipBtn} ${styles.chipRemoveBtn}`}
+              onClick={onRemove}
+              title="Remove"
+              aria-label={`Remove ${participant.username}`}
+            >
+              ✕
+            </button>
+          )}
+        </>
+      )}
+    </span>
+  );
+}
+
+interface GroupLabelProps {
+  name: string | null;
+  totalVotes: number;
+  isAdmin: boolean;
+  onRename: (name: string) => void;
+}
+
+function GroupLabel({ name, totalVotes, isAdmin, onRename }: GroupLabelProps) {
+  const [editing, setEditing] = useState(false);
+
+  if (editing) {
+    return (
+      <div className={styles.groupLabelEditing}>
+        <InlineEditor
+          initialValue={name ?? ""}
+          maxLength={100}
+          allowEmpty
+          ariaLabel="Rename group"
+          onSave={(value) => {
+            if (value !== (name ?? "")) onRename(value);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.groupLabel}>
+      <span className={styles.groupLabelText}>{name || "Group"}</span>
+      <span className={styles.groupVotes} title="Total votes in this group">
+        ▲ {totalVotes}
+      </span>
+      {isAdmin && (
+        <button
+          className={styles.groupEditBtn}
+          onClick={() => setEditing(true)}
+          title="Rename group"
+          aria-label="Rename group"
+        >
+          ✎
+        </button>
+      )}
+    </div>
+  );
+}
+
+interface NoteCardProps {
+  note: SnapshotNote;
+  voteCount: number;
+  isAdmin: boolean;
+  onSave: (content: string) => void;
+  onDelete: () => void;
+}
+
+function NoteCard({ note, voteCount, isAdmin, onSave, onDelete }: NoteCardProps) {
+  const [editing, setEditing] = useState(false);
+
   return (
     <div className={styles.noteCard} style={{ borderLeftColor: note.authorColor }}>
-      <div className={styles.noteContent}>{note.content}</div>
+      {editing ? (
+        <InlineEditor
+          initialValue={note.content}
+          multiline
+          maxLength={500}
+          ariaLabel="Edit note"
+          onSave={(content) => {
+            if (content !== note.content) onSave(content);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      ) : (
+        <div className={styles.noteContent}>{note.content}</div>
+      )}
+      {isAdmin && !editing && (
+        <span className={styles.noteControls}>
+          <button
+            className={styles.iconBtn}
+            onClick={() => setEditing(true)}
+            title="Edit note"
+            aria-label="Edit note"
+          >
+            ✎
+          </button>
+          <button
+            className={styles.deleteBtn}
+            onClick={onDelete}
+            title="Delete note"
+            aria-label="Delete note"
+          >
+            ✕
+          </button>
+        </span>
+      )}
       <div className={styles.noteFooter}>
         <span className={styles.authorDot} style={{ backgroundColor: note.authorColor }} />
         <span className={styles.authorName}>{note.authorName}</span>
       </div>
+      <span
+        className={styles.voteBadge}
+        title={`${voteCount} vote${voteCount === 1 ? "" : "s"}`}
+        aria-label={`${voteCount} vote${voteCount === 1 ? "" : "s"}`}
+      >
+        ▲ {voteCount}
+      </span>
     </div>
   );
 }

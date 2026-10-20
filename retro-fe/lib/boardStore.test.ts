@@ -10,6 +10,7 @@ const sampleSnapshot: RoomSnapshotResponse = {
   notes: [],
   groups: [],
   actionItems: [],
+  votes: [],
 };
 
 describe("useBoardStore", () => {

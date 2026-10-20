@@ -21,12 +21,14 @@ import com.retro.entity.Note;
 import com.retro.entity.NoteGroup;
 import com.retro.entity.Participant;
 import com.retro.entity.Room;
+import com.retro.entity.Vote;
 import com.retro.entity.enums.ParticipantRole;
 import com.retro.repository.ActionItemRepository;
 import com.retro.repository.BoardColumnRepository;
 import com.retro.repository.NoteGroupRepository;
 import com.retro.repository.NoteRepository;
 import com.retro.repository.ParticipantRepository;
+import com.retro.repository.VoteRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,19 +52,22 @@ public class PdfExportService {
     private final NoteGroupRepository noteGroupRepository;
     private final ActionItemRepository actionItemRepository;
     private final ParticipantRepository participantRepository;
+    private final VoteRepository voteRepository;
 
     public PdfExportService(
             BoardColumnRepository boardColumnRepository,
             NoteRepository noteRepository,
             NoteGroupRepository noteGroupRepository,
             ActionItemRepository actionItemRepository,
-            ParticipantRepository participantRepository
+            ParticipantRepository participantRepository,
+            VoteRepository voteRepository
     ) {
         this.boardColumnRepository = boardColumnRepository;
         this.noteRepository = noteRepository;
         this.noteGroupRepository = noteGroupRepository;
         this.actionItemRepository = actionItemRepository;
         this.participantRepository = participantRepository;
+        this.voteRepository = voteRepository;
     }
 
     @Transactional(readOnly = true)
@@ -69,7 +76,12 @@ public class PdfExportService {
         List<Note>         notes        = noteRepository.findSnapshotNotesByRoom(room);
         List<NoteGroup>    groups       = noteGroupRepository.findSnapshotGroupsByRoom(room);
         List<ActionItem>   actions      = actionItemRepository.findByRoomOrderByPosition(room);
-        List<Participant>  participants = participantRepository.findByRoom(room);
+        List<Participant>  participants = participantRepository.findByRoomAndRemovedFalse(room);
+        List<Vote>         votes        = voteRepository.findSnapshotVotesByRoom(room);
+
+        // Vote tallies cast during REVIEW, keyed by note id
+        Map<UUID, Long> voteCountByNote = votes.stream()
+                .collect(Collectors.groupingBy(v -> v.getNote().getId(), Collectors.counting()));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -140,15 +152,19 @@ public class PdfExportService {
             // Groups
             for (NoteGroup group : colGroups) {
                 String label = group.getName() != null ? group.getName() : "Group";
-                doc.add(new Paragraph("▸ " + label)
-                        .setFont(bold).setFontSize(9).setFontColor(ACCENT)
-                        .setMarginBottom(4).setMarginTop(8));
-
                 List<Note> groupNotes = colNotes.stream()
                         .filter(n -> group.getId().equals(n.getGroup() != null ? n.getGroup().getId() : null))
                         .collect(Collectors.toList());
+                long groupVotes = groupNotes.stream()
+                        .mapToLong(n -> voteCountByNote.getOrDefault(n.getId(), 0L))
+                        .sum();
+
+                doc.add(new Paragraph("▸ " + label + "  ·  " + votesLabel(groupVotes))
+                        .setFont(bold).setFontSize(9).setFontColor(ACCENT)
+                        .setMarginBottom(4).setMarginTop(8));
+
                 for (Note note : groupNotes) {
-                    doc.add(noteCard(note, normal, bold, true));
+                    doc.add(noteCard(note, voteCountByNote.getOrDefault(note.getId(), 0L), normal, bold, true));
                 }
             }
 
@@ -157,7 +173,7 @@ public class PdfExportService {
                     .filter(n -> n.getGroup() == null)
                     .collect(Collectors.toList());
             for (Note note : ungrouped) {
-                doc.add(noteCard(note, normal, bold, false));
+                doc.add(noteCard(note, voteCountByNote.getOrDefault(note.getId(), 0L), normal, bold, false));
             }
 
             if (colNotes.isEmpty()) {
@@ -183,7 +199,11 @@ public class PdfExportService {
         return out.toByteArray();
     }
 
-    private Div noteCard(Note note, PdfFont normal, PdfFont bold, boolean indented) {
+    private static String votesLabel(long count) {
+        return count + " vote" + (count == 1 ? "" : "s");
+    }
+
+    private Div noteCard(Note note, long voteCount, PdfFont normal, PdfFont bold, boolean indented) {
         String author = note.getParticipant().getUsername();
         Div card = new Div()
                 .setBackgroundColor(BG_CARD)
@@ -194,7 +214,7 @@ public class PdfExportService {
 
         card.add(new Paragraph(note.getContent())
                 .setFont(normal).setFontSize(9.5f).setMarginBottom(2).setMultipliedLeading(1.3f));
-        card.add(new Paragraph("— " + author)
+        card.add(new Paragraph("— " + author + "  ·  " + votesLabel(voteCount))
                 .setFont(bold).setFontSize(8).setFontColor(MUTED).setMarginBottom(0));
         return card;
     }

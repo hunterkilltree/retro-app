@@ -31,7 +31,7 @@ Real-time retrospective board. No auth. Users generate a room, share a link, and
 | Table           | PK (UUID) | Key Columns |
 |-----------------|-----------|-------------|
 | `rooms`         | `id`      | `room_code` (UK), `state`, `timer_seconds`, `timer_started_at`, `gemini_api_key` (nullable, never sent to clients), `created_at` |
-| `participants`  | `id`      | `room_id` (FK), `username`, `color`, `role`, `session_token`, `joined_at` |
+| `participants`  | `id`      | `room_id` (FK), `username`, `color`, `role`, `session_token`, `removed`, `joined_at` |
 | `board_columns` | `id`      | `room_id` (FK), `title`, `color`, `position`, `created_at` |
 | `notes`         | `id`      | `room_id` (FK), `column_id` (FK), `participant_id` (FK), `group_id` (FK nullable), `content`, `position` |
 | `note_groups`   | `id`      | `room_id` (FK), `column_id` (FK), `name`, `position` |
@@ -51,7 +51,7 @@ Real-time retrospective board. No auth. Users generate a room, share a link, and
 | `SETUP`  | Admin configures columns + timer; lobby shows connected users |
 | `START`  | Countdown runs; everyone writes notes; guests see only their own |
 | `REVIEW` | All notes revealed; admin groups notes via drag-and-drop |
-| `DONE`   | Summary view; admin adds action items and can export PDF |
+| `DONE`   | Summary view; admin finalises participants, notes, groups and action items, then exports PDF |
 
 ---
 

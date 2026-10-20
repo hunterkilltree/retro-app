@@ -196,7 +196,7 @@ public class RoomController {
             throw new UnauthorizedException("Session token does not belong to this room");
         }
 
-        List<Participant> participants = participantRepository.findByRoom(room);
+        List<Participant> participants = participantRepository.findByRoomAndRemovedFalse(room);
         List<BoardColumn> columns = boardColumnRepository.findByRoomOrderByPosition(room);
         List<NoteGroup> groups = noteGroupRepository.findSnapshotGroupsByRoom(room);
         List<Note> notes = noteRepository.findSnapshotNotesByRoom(room);
