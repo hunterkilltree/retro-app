@@ -3,6 +3,10 @@ package com.retro.service;
 import com.retro.exception.AiSuggestionUnavailableException;
 import org.junit.jupiter.api.Test;
 
+import com.sun.net.httpserver.HttpServer;
+
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,5 +74,27 @@ class GroupTitleSuggestionServiceTest {
                 .isInstanceOf(AiSuggestionUnavailableException.class);
         assertThatThrownBy(() -> GroupTitleSuggestionService.parseResponse("<html>oops</html>"))
                 .isInstanceOf(AiSuggestionUnavailableException.class);
+    }
+
+    @Test
+    void suggestTitle_handlesOctetStreamResponse() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            byte[] body = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Slow CI Builds\"}]}}]}"
+                    .getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/octet-stream");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            var service = new GroupTitleSuggestionService(
+                    "", "gemini-3.8-flash", "http://127.0.0.1:" + server.getAddress().getPort());
+            assertThat(service.suggestTitle("room-key", "Went Wrong", List.of("Builds slow")))
+                    .isEqualTo("Slow CI Builds");
+        } finally {
+            server.stop(0);
+        }
     }
 }
