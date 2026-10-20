@@ -112,6 +112,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
         timerSeconds: snapshot.room.timerSeconds,
         timerStartedAt: null, // not used for display; timerEndsAtMs is used
         votesPerUser: snapshot.room.votesPerUser,
+        aiEnabled: snapshot.room.aiEnabled,
       },
       participants: snapshot.participants,
       columns: snapshot.columns,

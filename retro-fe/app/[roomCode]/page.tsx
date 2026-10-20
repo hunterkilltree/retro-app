@@ -187,6 +187,7 @@ function BoardView({ roomCode, sessionToken }: { roomCode: string; sessionToken:
           groups={groups}
           votes={votes}
           votesPerUser={room.votesPerUser ?? 0}
+          aiEnabled={room.aiEnabled ?? false}
           me={me}
           onGroupNotes={handleGroupNotes}
           onRenameGroup={handleRenameGroup}

@@ -25,6 +25,7 @@ public class RoomService {
     private final ActionItemRepository actionItemRepository;
     private final VoteRepository voteRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final GroupTitleSuggestionService groupTitleSuggestionService;
 
     public RoomService(
             ParticipantRepository participantRepository,
@@ -33,7 +34,8 @@ public class RoomService {
             NoteGroupRepository noteGroupRepository,
             ActionItemRepository actionItemRepository,
             VoteRepository voteRepository,
-            SimpMessagingTemplate messagingTemplate
+            SimpMessagingTemplate messagingTemplate,
+            GroupTitleSuggestionService groupTitleSuggestionService
     ) {
         this.participantRepository = participantRepository;
         this.boardColumnRepository = boardColumnRepository;
@@ -42,6 +44,7 @@ public class RoomService {
         this.actionItemRepository = actionItemRepository;
         this.voteRepository = voteRepository;
         this.messagingTemplate = messagingTemplate;
+        this.groupTitleSuggestionService = groupTitleSuggestionService;
     }
 
     /**
@@ -75,7 +78,8 @@ public class RoomService {
                         room.getState(),
                         room.getTimerSeconds(),
                         timerEndsAtMs,
-                        room.getVotesPerUser()
+                        room.getVotesPerUser(),
+                        groupTitleSuggestionService.isEnabled(room.getGeminiApiKey())
                 ),
                 participants.stream()
                         .map(p -> new BoardSnapshotMessage.ParticipantSummary(

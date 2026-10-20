@@ -148,11 +148,14 @@ function GroupLabel({
   group,
   isAdmin,
   totalVotes,
+  aiEnabled,
   onRename,
+  onSuggest,
 }: {
   group: SnapshotGroup;
   isAdmin: boolean;
   totalVotes: number;
+  aiEnabled: boolean;
   onRename: (groupId: string, name: string) => void;
   onSuggest: (groupId: string) => Promise<string>;
 }) {
@@ -220,7 +223,7 @@ function GroupLabel({
       >
         <span className={styles.groupLabelText}>{group.name || "Group"}</span>
         {isAdmin && <span className={styles.groupLabelEdit}>✏</span>}
-        {isAdmin && (
+        {isAdmin && aiEnabled && (
           <button
             type="button"
             className={styles.suggestBtn}
@@ -247,6 +250,7 @@ interface ReviewBoardProps {
   groups: SnapshotGroup[];
   votes: Vote[];
   votesPerUser: number;
+  aiEnabled: boolean;
   me: Participant;
   onGroupNotes: (draggedNoteId: string, targetNoteId: string) => void;
   onRenameGroup: (groupId: string, name: string) => void;
@@ -262,6 +266,7 @@ export function ReviewBoard({
   groups,
   votes,
   votesPerUser,
+  aiEnabled,
   me,
   onGroupNotes,
   onRenameGroup,
@@ -388,6 +393,7 @@ export function ReviewBoard({
                           group={group}
                           isAdmin={isAdmin}
                           totalVotes={groupVotes}
+                          aiEnabled={aiEnabled}
                           onRename={onRenameGroup}
                           onSuggest={onSuggestGroupTitle}
                         />

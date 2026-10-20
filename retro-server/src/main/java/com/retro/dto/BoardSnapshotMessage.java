@@ -31,7 +31,8 @@ public record BoardSnapshotMessage(
             BoardState state,
             Integer timerSeconds,
             Long timerEndsAtMs,   // null until state = START and timer is running
-            Integer votesPerUser  // null until the host sets it in SETUP
+            Integer votesPerUser, // null until the host sets it in SETUP
+            boolean aiEnabled     // true when AI group-title suggestions are available
     ) {}
 
     public record ParticipantSummary(UUID id, String username, String color, ParticipantRole role) {}

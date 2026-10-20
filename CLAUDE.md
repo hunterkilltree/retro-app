@@ -30,7 +30,7 @@ Real-time retrospective board. No auth. Users generate a room, share a link, and
 
 | Table           | PK (UUID) | Key Columns |
 |-----------------|-----------|-------------|
-| `rooms`         | `id`      | `room_code` (UK), `state`, `timer_seconds`, `timer_started_at`, `created_at` |
+| `rooms`         | `id`      | `room_code` (UK), `state`, `timer_seconds`, `timer_started_at`, `gemini_api_key` (nullable, never sent to clients), `created_at` |
 | `participants`  | `id`      | `room_id` (FK), `username`, `color`, `role`, `session_token`, `joined_at` |
 | `board_columns` | `id`      | `room_id` (FK), `title`, `color`, `position`, `created_at` |
 | `notes`         | `id`      | `room_id` (FK), `column_id` (FK), `participant_id` (FK), `group_id` (FK nullable), `content`, `position` |

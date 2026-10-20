@@ -42,8 +42,18 @@ class GroupTitleSuggestionServiceTest {
     @Test
     void suggestTitle_withoutApiKey_throwsUnavailable() {
         var service = new GroupTitleSuggestionService("", "gemini-2.5-flash", "http://localhost");
-        assertThat(service.isEnabled()).isFalse();
-        assertThatThrownBy(() -> service.suggestTitle("Col", List.of("a note")))
+        assertThat(service.isEnabled(null)).isFalse();
+        assertThat(service.isEnabled("  ")).isFalse();
+        assertThatThrownBy(() -> service.suggestTitle(null, "Col", List.of("a note")))
                 .isInstanceOf(AiSuggestionUnavailableException.class);
+    }
+
+    @Test
+    void isEnabled_withRoomKeyOrServerKey() {
+        var noServerKey = new GroupTitleSuggestionService("", "gemini-2.5-flash", "http://localhost");
+        assertThat(noServerKey.isEnabled("room-key")).isTrue();
+
+        var withServerKey = new GroupTitleSuggestionService("server-key", "gemini-2.5-flash", "http://localhost");
+        assertThat(withServerKey.isEnabled(null)).isTrue();
     }
 }

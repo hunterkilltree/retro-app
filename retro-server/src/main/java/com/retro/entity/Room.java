@@ -45,6 +45,11 @@ public class Room {
     @Column(name = "votes_per_user")
     private Integer votesPerUser;
 
+    /** Optional Gemini API key for AI group-title suggestions. Never sent to clients. */
+    @ToString.Exclude
+    @Column(name = "gemini_api_key", length = 200)
+    private String geminiApiKey;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

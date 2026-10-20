@@ -19,6 +19,7 @@ export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [geminiApiKey, setGeminiApiKey] = useState("");
 
   async function onGenerateRoom() {
     if (loading) return;
@@ -26,7 +27,11 @@ export default function Home() {
     setError(null);
 
     try {
-      const res = await fetch("/api/rooms", { method: "POST" });
+      const res = await fetch("/api/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ geminiApiKey: geminiApiKey.trim() || null }),
+      });
       const json = (await res.json()) as ApiResponse<CreateRoomResponse>;
 
       if (!res.ok || !json.success) {
@@ -63,6 +68,23 @@ export default function Home() {
         </p>
 
         <div className="mt-8 flex w-full max-w-sm flex-col items-stretch gap-3">
+          <label className="flex flex-col gap-1 text-left text-xs text-zinc-700">
+            <span>
+              Gemini API key <span className="text-zinc-500">(optional — enables AI group titles)</span>
+            </span>
+            <input
+              type="password"
+              value={geminiApiKey}
+              onChange={(e) => setGeminiApiKey(e.target.value)}
+              placeholder="AIza…"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={200}
+              disabled={loading}
+              className="h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-[#b8820a]"
+            />
+          </label>
+
           <button
             type="button"
             onClick={onGenerateRoom}

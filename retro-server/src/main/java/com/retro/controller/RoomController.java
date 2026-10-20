@@ -2,6 +2,7 @@ package com.retro.controller;
 
 import com.retro.dto.AddColumnRequest;
 import com.retro.dto.ApiResponse;
+import com.retro.dto.CreateRoomRequest;
 import com.retro.dto.CreateRoomResponse;
 import com.retro.dto.JoinRoomRequest;
 import com.retro.dto.JoinRoomResponse;
@@ -101,7 +102,9 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<CreateRoomResponse>> createRoom() {
+    public ResponseEntity<ApiResponse<CreateRoomResponse>> createRoom(
+            @Valid @RequestBody(required = false) CreateRoomRequest body
+    ) {
         String roomCode = null;
         for (int i = 0; i < 10; i++) {
             String candidate = RoomCodeGenerator.generate();
@@ -120,6 +123,8 @@ public class RoomController {
                 .roomCode(roomCode)
                 .state(BoardState.SETUP)
                 .timerSeconds(300)
+                .geminiApiKey(body == null || body.geminiApiKey() == null || body.geminiApiKey().isBlank()
+                        ? null : body.geminiApiKey().strip())
                 .build();
 
         Room saved = roomRepository.save(room);
@@ -200,7 +205,7 @@ public class RoomController {
 
         RoomSnapshotResponse payload = new RoomSnapshotResponse(
                 new RoomSnapshotResponse.Participant(me.getId(), me.getUsername(), me.getColor(), me.getRole()),
-                new RoomSnapshotResponse.Room(room.getId(), room.getRoomCode(), room.getTitle(), room.getState(), room.getTimerSeconds(), room.getTimerStartedAt(), room.getVotesPerUser()),
+                new RoomSnapshotResponse.Room(room.getId(), room.getRoomCode(), room.getTitle(), room.getState(), room.getTimerSeconds(), room.getTimerStartedAt(), room.getVotesPerUser(), groupTitleSuggestionService.isEnabled(room.getGeminiApiKey())),
                 participants.stream()
                         .map(p -> new RoomSnapshotResponse.ParticipantSummary(p.getId(), p.getUsername(), p.getColor(), p.getRole()))
                         .toList(),
@@ -508,7 +513,7 @@ public class RoomController {
                 .filter(c -> c != null && !c.isBlank())
                 .toList();
 
-        String title = groupTitleSuggestionService.suggestTitle(columnTitle, contents);
+        String title = groupTitleSuggestionService.suggestTitle(room.getGeminiApiKey(), columnTitle, contents);
         return ResponseEntity.ok(ApiResponse.ok(new SuggestGroupTitleResponse(title)));
     }
 

@@ -31,7 +31,8 @@ public record RoomSnapshotResponse(
             BoardState state,
             Integer timerSeconds,
             LocalDateTime timerStartedAt,
-            Integer votesPerUser
+            Integer votesPerUser,
+            boolean aiEnabled
     ) {}
 
     public record ParticipantSummary(

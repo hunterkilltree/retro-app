@@ -50,13 +50,20 @@ public class GroupTitleSuggestionService {
                 .build();
     }
 
-    public boolean isEnabled() {
-        return !apiKey.isEmpty();
+    /** True when suggestions can be made for a room with the given (possibly null) key. */
+    public boolean isEnabled(String roomApiKey) {
+        return !resolveApiKey(roomApiKey).isEmpty();
     }
 
-    public String suggestTitle(String columnTitle, List<String> noteContents) {
-        if (!isEnabled()) {
-            throw new AiSuggestionUnavailableException("AI suggestions are not configured (missing GEMINI_API_KEY)");
+    /** The room's own key (set by the host at creation) wins; the server-wide key is the fallback. */
+    private String resolveApiKey(String roomApiKey) {
+        return roomApiKey != null && !roomApiKey.isBlank() ? roomApiKey.strip() : apiKey;
+    }
+
+    public String suggestTitle(String roomApiKey, String columnTitle, List<String> noteContents) {
+        String key = resolveApiKey(roomApiKey);
+        if (key.isEmpty()) {
+            throw new AiSuggestionUnavailableException("AI suggestions are not enabled for this room (no Gemini API key)");
         }
         if (noteContents.isEmpty()) {
             throw new AiSuggestionUnavailableException("Group has no notes to summarise");
@@ -74,7 +81,7 @@ public class GroupTitleSuggestionService {
         try {
             response = restClient.post()
                     .uri("/models/{model}:generateContent", model)
-                    .header("x-goog-api-key", apiKey)
+                    .header("x-goog-api-key", key)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()

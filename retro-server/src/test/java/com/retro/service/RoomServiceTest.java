@@ -52,7 +52,8 @@ class RoomServiceTest {
                 noteGroupRepository,
                 actionItemRepository,
                 voteRepository,
-                messagingTemplate
+                messagingTemplate,
+                new GroupTitleSuggestionService("", "gemini-2.5-flash", "http://localhost")
         );
     }
 
