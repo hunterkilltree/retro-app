@@ -56,4 +56,19 @@ class GroupTitleSuggestionServiceTest {
         var withServerKey = new GroupTitleSuggestionService("server-key", "gemini-3.8-flash", "http://localhost");
         assertThat(withServerKey.isEnabled(null)).isTrue();
     }
+
+    @Test
+    void parseResponse_parsesJsonRegardlessOfContentType() {
+        var parsed = GroupTitleSuggestionService.parseResponse(
+                "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Team Morale\"}]}}]}");
+        assertThat(parsed.get("candidates")).isInstanceOf(List.class);
+    }
+
+    @Test
+    void parseResponse_rejectsEmptyOrNonJson() {
+        assertThatThrownBy(() -> GroupTitleSuggestionService.parseResponse(""))
+                .isInstanceOf(AiSuggestionUnavailableException.class);
+        assertThatThrownBy(() -> GroupTitleSuggestionService.parseResponse("<html>oops</html>"))
+                .isInstanceOf(AiSuggestionUnavailableException.class);
+    }
 }

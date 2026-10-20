@@ -9,6 +9,8 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +25,8 @@ import java.util.stream.Collectors;
 public class GroupTitleSuggestionService {
 
     private static final Logger log = LoggerFactory.getLogger(GroupTitleSuggestionService.class);
+
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
     static final int MAX_WORDS = 3;
     static final int MAX_LENGTH = 60;
@@ -83,19 +87,23 @@ public class GroupTitleSuggestionService {
                 "generationConfig", Map.of("temperature", 0.4)
         );
 
-        Map<?, ?> response;
+        // Read as text and parse ourselves: Gemini sometimes answers with a non-JSON
+        // content type (e.g. application/octet-stream), which the JSON converter rejects.
+        String raw;
         try {
-            response = restClient.post()
+            raw = restClient.post()
                     .uri("/models/{model}:generateContent", modelToUse)
                     .header("x-goog-api-key", key)
                     .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
-                    .body(Map.class);
+                    .body(String.class);
         } catch (RestClientException e) {
             log.warn("Gemini request failed: {}", e.getMessage());
             throw new AiSuggestionUnavailableException("AI suggestion service failed", e);
         }
+        Map<?, ?> response = parseResponse(raw);
 
         String title = toTitle(extractText(response));
         if (title.isEmpty()) {
@@ -124,6 +132,20 @@ public class GroupTitleSuggestionService {
                 Notes:
                 %s
                 """.formatted(columnTitle == null ? "" : columnTitle, notes);
+    }
+
+    static Map<?, ?> parseResponse(String raw) {
+        if (raw == null || raw.isBlank()) {
+            log.warn("Gemini returned an empty response body");
+            throw new AiSuggestionUnavailableException("AI returned an empty response");
+        }
+        try {
+            return JSON.readValue(raw, Map.class);
+        } catch (JacksonException e) {
+            String snippet = raw.length() > 200 ? raw.substring(0, 200) + "…" : raw;
+            log.warn("Gemini returned a non-JSON response: {}", snippet);
+            throw new AiSuggestionUnavailableException("AI returned an unreadable response", e);
+        }
     }
 
     private static String extractText(Map<?, ?> response) {
