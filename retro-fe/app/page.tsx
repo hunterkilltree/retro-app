@@ -6,6 +6,9 @@ import { useState } from "react";
 type ApiResponse<T> = { success: true; data: T } | { success: false; error: string };
 type CreateRoomResponse = { id: string; roomCode: string; state: "SETUP" | "START" | "REVIEW" | "DONE" };
 
+// Shown as autocomplete suggestions; any valid model name can still be typed.
+const GEMINI_MODEL_SUGGESTIONS = ["gemini-3.8-flash", "gemini-3.8-pro", "gemini-3.8-flash-lite"];
+
 function Spinner() {
   return (
     <span
@@ -20,6 +23,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [geminiModel, setGeminiModel] = useState("");
 
   async function onGenerateRoom() {
     if (loading) return;
@@ -30,7 +34,11 @@ export default function Home() {
       const res = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ geminiApiKey: geminiApiKey.trim() || null }),
+        body: JSON.stringify({
+          geminiApiKey: geminiApiKey.trim() || null,
+          // Model only matters when a key is supplied; blank = server default.
+          geminiModel: (geminiApiKey.trim() && geminiModel.trim()) || null,
+        }),
       });
       const json = (await res.json()) as ApiResponse<CreateRoomResponse>;
 
@@ -84,6 +92,32 @@ export default function Home() {
               className="h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-[#b8820a]"
             />
           </label>
+
+          {geminiApiKey.trim() ? (
+            <label className="flex flex-col gap-1 text-left text-xs text-zinc-700">
+              <span>
+                Gemini model <span className="text-zinc-500">(optional — leave blank for the default)</span>
+              </span>
+              <input
+                type="text"
+                list="gemini-models"
+                value={geminiModel}
+                onChange={(e) => setGeminiModel(e.target.value)}
+                placeholder="e.g. gemini-3.8-flash"
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={80}
+                pattern="[A-Za-z0-9._\-]*"
+                disabled={loading}
+                className="h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none focus:border-[#b8820a]"
+              />
+              <datalist id="gemini-models">
+                {GEMINI_MODEL_SUGGESTIONS.map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+            </label>
+          ) : null}
 
           <button
             type="button"

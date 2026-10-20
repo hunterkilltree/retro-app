@@ -35,7 +35,7 @@ public class GroupTitleSuggestionService {
 
     public GroupTitleSuggestionService(
             @Value("${gemini.api-key:}") String apiKey,
-            @Value("${gemini.model:gemini-2.5-flash}") String model,
+            @Value("${gemini.model:gemini-3.8-flash}") String model,
             @Value("${gemini.base-url:https://generativelanguage.googleapis.com/v1beta}") String baseUrl
     ) {
         this.apiKey = apiKey == null ? "" : apiKey.strip();
@@ -61,6 +61,12 @@ public class GroupTitleSuggestionService {
     }
 
     public String suggestTitle(String roomApiKey, String columnTitle, List<String> noteContents) {
+        return suggestTitle(roomApiKey, null, columnTitle, noteContents);
+    }
+
+    /** {@code roomModel} overrides the server default model when non-blank. */
+    public String suggestTitle(String roomApiKey, String roomModel, String columnTitle, List<String> noteContents) {
+        String modelToUse = roomModel != null && !roomModel.isBlank() ? roomModel.strip() : model;
         String key = resolveApiKey(roomApiKey);
         if (key.isEmpty()) {
             throw new AiSuggestionUnavailableException("AI suggestions are not enabled for this room (no Gemini API key)");
@@ -80,7 +86,7 @@ public class GroupTitleSuggestionService {
         Map<?, ?> response;
         try {
             response = restClient.post()
-                    .uri("/models/{model}:generateContent", model)
+                    .uri("/models/{model}:generateContent", modelToUse)
                     .header("x-goog-api-key", key)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)

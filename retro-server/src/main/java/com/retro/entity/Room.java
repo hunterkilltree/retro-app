@@ -50,6 +50,10 @@ public class Room {
     @Column(name = "gemini_api_key", length = 200)
     private String geminiApiKey;
 
+    /** Optional Gemini model (e.g. "gemini-3.8-flash"). null = server default. */
+    @Column(name = "gemini_model", length = 80)
+    private String geminiModel;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
